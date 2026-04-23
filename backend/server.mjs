@@ -33,8 +33,8 @@ const PORT = Number(process.env.PORT || 3001);
 const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://10.0.2.2:3001").split(",");
 app.use(cors({
   origin: (origin, callback) => {
-    // Permettre les requêtes sans origin (mobile apps, curl)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permettre les requêtes sans origin (mobile apps, curl) ou depuis n'importe quel port localhost
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith("http://localhost:")) {
       callback(null, true);
     } else if (process.env.NODE_ENV === "production") {
       callback(new Error(`Origine non autorisée: ${origin}`));
