@@ -34,7 +34,7 @@ router.post("/", async (req, res, next) => {
 router.get("/me", async (req, res, next) => {
   try {
     const { status } = req.query;
-    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.fichier_url as justificatif_url
+    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url
                FROM absences a
                JOIN types_absence t ON t.id = a.type_absence_id
                JOIN employes e ON e.id = a.employe_id
@@ -81,7 +81,7 @@ router.put("/:id/cancel", async (req, res, next) => {
 router.get("/all", requireAdmin, async (req, res, next) => {
   try {
     const { service, status } = req.query;
-    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, e.email, e.service_id, j.fichier_url as justificatif_url
+    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, e.email, e.service_id, j.chemin_fichier as justificatif_url
                FROM absences a
                JOIN types_absence t ON t.id = a.type_absence_id
                JOIN employes e ON e.id = a.employe_id
@@ -165,7 +165,7 @@ router.put("/:id/reject", requireAdmin, async (req, res, next) => {
 router.get("/employee/:id", requireAdmin, async (req, res, next) => {
   try {
     const result = await query(
-      `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.fichier_url as justificatif_url
+      `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url
        FROM absences a
        JOIN types_absence t ON t.id = a.type_absence_id
        JOIN employes e ON e.id = a.employe_id
