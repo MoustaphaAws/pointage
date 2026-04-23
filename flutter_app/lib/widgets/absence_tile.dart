@@ -18,10 +18,12 @@ class AbsenceTile extends StatelessWidget {
 
   Color _statusColor() {
     switch (absence.status) {
-      case 'validé':
+      case 'approuvee':
         return AppColors.emerald500;
-      case 'rejeté':
+      case 'rejetee':
         return AppColors.rose500;
+      case 'annulee':
+        return AppColors.slate400;
       default:
         return AppColors.amber500;
     }
@@ -29,12 +31,24 @@ class AbsenceTile extends StatelessWidget {
 
   Color _statusBg() {
     switch (absence.status) {
-      case 'validé':
+      case 'approuvee':
         return AppColors.emerald100;
-      case 'rejeté':
+      case 'rejetee':
         return AppColors.rose100;
+      case 'annulee':
+        return AppColors.slate100;
       default:
         return AppColors.amber100;
+    }
+  }
+
+  String _statusLabel() {
+    switch (absence.status) {
+      case 'en_attente': return 'EN ATTENTE';
+      case 'approuvee': return 'APPROUVÉE';
+      case 'rejetee': return 'REJETÉE';
+      case 'annulee': return 'ANNULÉE';
+      default: return absence.status.toUpperCase();
     }
   }
 
@@ -52,7 +66,7 @@ class AbsenceTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (showEmployee && absence.userName != null) ...[
+              if (showEmployee && absence.employeeName != null) ...[
                 Container(
                   width: 36,
                   height: 36,
@@ -62,7 +76,7 @@ class AbsenceTile extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    absence.userName!
+                    absence.employeeName!
                         .split(' ')
                         .map((n) => n.isNotEmpty ? n[0] : '')
                         .join(),
@@ -79,7 +93,7 @@ class AbsenceTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        absence.userName!,
+                        absence.employeeName!,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -87,7 +101,7 @@ class AbsenceTile extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        absence.type,
+                        absence.typeAbsenceLabel,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -100,7 +114,7 @@ class AbsenceTile extends StatelessWidget {
               ] else ...[
                 Expanded(
                   child: Text(
-                    absence.type,
+                    absence.typeAbsenceLabel,
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -116,7 +130,7 @@ class AbsenceTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  absence.status.toUpperCase(),
+                  _statusLabel(),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -129,7 +143,7 @@ class AbsenceTile extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Du ${absence.startDate} au ${absence.endDate}',
+            'Du ${absence.dateDebut} au ${absence.dateFin}',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,

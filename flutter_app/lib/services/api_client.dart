@@ -1,130 +1,291 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
+/// Client API réel — Connexion HTTP vers le backend Express
 class ApiClient {
   final String? token;
-  
-  ApiClient({this.token});
+  late final Dio _dio;
 
-  // ─── Mock Data ───
-  static final _adminUser = {
-    'id': '1',
-    'email': 'admin@propointage.com',
-    'role': 'admin',
-    'name': 'Jean Admin',
-    'service': 'RH',
-  };
-  
-  static final _empUser = {
-    'id': '2',
-    'email': 'emp@propointage.com',
-    'role': 'employee',
-    'name': 'Alice Doe',
-    'service': 'Tech',
-  };
-
-  static final _mockPointage = {
-    'id': '1',
-    'date': DateTime.now().toIso8601String().split('T')[0],
-    'checkIn': '09:15',
-    'checkOut': '17:30',
-    'status': 'retard',
-    'delayMinutes': 15,
-  };
-
-  static final List<Map<String, dynamic>> _mockAbsences = [
-    {
-      'id': '1',
-      'userId': '2',
-      'userName': 'Alice Doe',
-      'type': 'Congé payé',
-      'startDate': '2026-04-25',
-      'endDate': '2026-04-30',
-      'status': 'en attente',
-      'reason': 'Vacances famille',
+  // URL dynamique selon l'environnement
+  static String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3001/api'; // Pour Chrome (Web)
     }
-  ];
-
-  // Helper to create fake Dio responses
-  Future<Response> _mockResponse(dynamic data, {int statusCode = 200}) async {
-    await Future.delayed(const Duration(milliseconds: 600)); // Simulate network latency
-    if (statusCode >= 400) {
-      throw DioException(
-        requestOptions: RequestOptions(path: ''),
-        response: Response(
-          requestOptions: RequestOptions(path: ''),
-          statusCode: statusCode,
-          data: data,
-        ),
-      );
-    }
-    return Response(
-      requestOptions: RequestOptions(path: ''),
-      statusCode: statusCode,
-      data: data,
-    );
+    return 'http://10.0.2.2:3001/api'; // Pour Android Emulator
   }
 
-  // ─── Auth ───
-  Future<Response> login(String email, String password) async {
-    if (email == 'admin@propointage.com' && password == 'admin123') {
-      return _mockResponse({'token': 'mock_admin_token', 'user': _adminUser});
-    } else if (email == 'emp@propointage.com' && password == 'emp123') {
-      return _mockResponse({'token': 'mock_emp_token', 'user': _empUser});
-    }
-    return _mockResponse({'message': 'Identifiants invalides'}, statusCode: 401);
+  ApiClient({this.token}) {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 15),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    ));
   }
 
-  Future<Response> logout() => _mockResponse({'message': 'Logged out'});
+  // ════════════════════════════════════════════════════════════
+  // 1. AUTH
+  // ════════════════════════════════════════════════════════════
 
-  // ─── Pointages ───
-  Future<Response> getTodayPointage() => _mockResponse(_mockPointage);
-  Future<Response> getPointageHistory() => _mockResponse([_mockPointage]);
-  Future<Response> getAllPointages() => _mockResponse([_mockPointage]);
-  Future<Response> getLivePointages() => _mockResponse([_mockPointage]);
+  Future<Response> login(String email, String password) =>
+      _dio.post('/auth/login', data: {'email': email, 'password': password});
 
-  // ─── Absences ───
-  Future<Response> requestAbsence(Map<String, dynamic> data) async {
-    final newAbsence = {
-      ...data,
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'userId': '2',
-      'userName': 'Alice Doe',
-      'status': 'en attente',
-    };
-    _mockAbsences.add(newAbsence);
-    return _mockResponse(newAbsence, statusCode: 201);
-  }
-  
-  Future<Response> getMyAbsences() => _mockResponse(
-      _mockAbsences.where((a) => a['userId'] == '2').toList());
-      
-  Future<Response> getAllAbsences() => _mockResponse(_mockAbsences);
-  
-  Future<Response> validateAbsence(String id, String status, {String? motive}) async {
-    final index = _mockAbsences.indexWhere((a) => a['id'] == id);
-    if (index != -1) {
-      _mockAbsences[index]['status'] = status;
-      if (motive != null) _mockAbsences[index]['motive'] = motive;
-      return _mockResponse(_mockAbsences[index]);
-    }
-    return _mockResponse({'message': 'Introuvable'}, statusCode: 404);
+  Future<Response> logout() => _dio.post('/auth/logout');
+
+  Future<Response> forgotPassword(String email) =>
+      _dio.post('/auth/forgot-password', data: {'email': email});
+
+  Future<Response> resetPassword(String token, String newPassword) =>
+      _dio.post('/auth/reset-password', data: {'token': token, 'newPassword': newPassword});
+
+  Future<Response> changePassword(String oldPassword, String newPassword) =>
+      _dio.put('/auth/change-password', data: {'oldPassword': oldPassword, 'newPassword': newPassword});
+
+  // ════════════════════════════════════════════════════════════
+  // 2. PROFIL
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getProfile() => _dio.get('/profile/me');
+
+  Future<Response> updateProfile(Map<String, dynamic> data) =>
+      _dio.put('/profile/me', data: data);
+
+  Future<Response> uploadPhoto(String filePath) async {
+    final formData = FormData.fromMap({
+      'photo': await MultipartFile.fromFile(filePath),
+    });
+    return _dio.post('/profile/me/photo', data: formData);
   }
 
-  // ─── Stats ───
-  Future<Response> getMonthStats() => _mockResponse({
-    'joursTravailles': 14,
-    'heuresTotales': 112,
-    'retards': 4,
-    'soldeConges': 25,
-  });
+  // ════════════════════════════════════════════════════════════
+  // 3. POINTAGES
+  // ════════════════════════════════════════════════════════════
 
-  Future<Response> getGlobalStats() => _mockResponse({
-    'tauxAbsenteisme': 5.2,
-    'retardsAujourdhui': 4,
-    'presenceTempsReel': 85,
-    'notificationsPending': _mockAbsences.where((a) => a['status'] == 'en attente').length,
-  });
+  Future<Response> getTodayPointage() => _dio.get('/pointages/today');
 
-  // ─── Employees ───
-  Future<Response> getEmployees() => _mockResponse([_empUser]);
+  Future<Response> getPointageHistory({String? start, String? end}) =>
+      _dio.get('/pointages/history', queryParameters: {
+        if (start != null) 'start': start,
+        if (end != null) 'end': end,
+      });
+
+  Future<Response> getAllPointages({String? serviceId, String? start, String? end}) =>
+      _dio.get('/pointages/all', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+        if (start != null) 'start': start,
+        if (end != null) 'end': end,
+      });
+
+  Future<Response> getLivePointages() => _dio.get('/pointages/live');
+
+  Future<Response> getPointagesByEmployee(String employeeId, {String? start, String? end}) =>
+      _dio.get('/pointages/employee/$employeeId', queryParameters: {
+        if (start != null) 'start': start,
+        if (end != null) 'end': end,
+      });
+
+  // ════════════════════════════════════════════════════════════
+  // 4. QR CODE POINTAGE
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getDailyQr() => _dio.get('/pointages/qr/daily');
+
+  Future<Response> regenerateDailyQr() => _dio.post('/pointages/qr/regenerate');
+
+  Future<Response> validateQrPointage(String qrData) =>
+      _dio.post('/pointages/qr/validate', data: {'qrData': qrData});
+
+  // ════════════════════════════════════════════════════════════
+  // 5. ABSENCES
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> requestAbsence(Map<String, dynamic> data) =>
+      _dio.post('/absences', data: data);
+
+  Future<Response> getMyAbsences({String? status}) =>
+      _dio.get('/absences/me', queryParameters: {
+        if (status != null) 'status': status,
+      });
+
+  Future<Response> cancelAbsence(String id) =>
+      _dio.put('/absences/$id/cancel');
+
+  Future<Response> getAllAbsences({String? serviceId, String? status}) =>
+      _dio.get('/absences/all', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+        if (status != null) 'status': status,
+      });
+
+  Future<Response> approveAbsence(String id) =>
+      _dio.put('/absences/$id/approve');
+
+  Future<Response> rejectAbsence(String id, String motifRejet) =>
+      _dio.put('/absences/$id/reject', data: {'motifRejet': motifRejet});
+
+  Future<Response> getAbsencesByEmployee(String employeeId) =>
+      _dio.get('/absences/employee/$employeeId');
+
+  // Backward compatibility
+  Future<Response> validateAbsence(String id, String status, {String? motive}) {
+    if (status == 'approuvee' || status == 'validé') return approveAbsence(id);
+    return rejectAbsence(id, motive ?? 'Rejeté par l\'admin');
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // 6. JUSTIFICATIFS
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> uploadJustificatif(String absenceId, String filePath) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath),
+    });
+    return _dio.post('/justificatifs/upload/$absenceId', data: formData);
+  }
+
+  Future<Response> validateJustificatif(String id) =>
+      _dio.put('/justificatifs/$id/validate');
+
+  Future<Response> rejectJustificatif(String id, String motif) =>
+      _dio.put('/justificatifs/$id/reject', data: {'motifRejet': motif});
+
+  // ════════════════════════════════════════════════════════════
+  // 7. EMPLOYÉS (Admin)
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getEmployees({String? serviceId, String? status, String? search, String? contrat}) =>
+      _dio.get('/employees', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+        if (status != null) 'status': status,
+        if (search != null) 'search': search,
+        if (contrat != null) 'contrat': contrat,
+      });
+
+  Future<Response> getEmployeeById(String id) =>
+      _dio.get('/employees/$id');
+
+  Future<Response> createEmployee(Map<String, dynamic> data) =>
+      _dio.post('/employees', data: data);
+
+  Future<Response> updateEmployee(String id, Map<String, dynamic> data) =>
+      _dio.put('/employees/$id', data: data);
+
+  Future<Response> deactivateEmployee(String id) =>
+      _dio.put('/employees/$id/deactivate');
+
+  Future<Response> activateEmployee(String id) =>
+      _dio.put('/employees/$id/activate');
+
+  // ════════════════════════════════════════════════════════════
+  // 8. BADGES
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getBadges({String? status}) =>
+      _dio.get('/badges', queryParameters: {
+        if (status != null) 'status': status,
+      });
+
+  Future<Response> assignBadge(String employeeId, String uid) =>
+      _dio.put('/badges/employees/$employeeId/badge', data: {'uidBadge': uid});
+
+  Future<Response> deactivateBadge(String uid) =>
+      _dio.put('/badges/$uid/deactivate');
+
+  // ════════════════════════════════════════════════════════════
+  // 9. SERVICES
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getServices() => _dio.get('/services');
+
+  // ════════════════════════════════════════════════════════════
+  // 10. JOURS FÉRIÉS
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getJoursFeries() => _dio.get('/jours-feries');
+
+  Future<Response> createJourFerie(Map<String, dynamic> data) =>
+      _dio.post('/jours-feries', data: data);
+
+  Future<Response> updateJourFerie(String id, Map<String, dynamic> data) =>
+      _dio.put('/jours-feries/$id', data: data);
+
+  Future<Response> deleteJourFerie(String id) =>
+      _dio.delete('/jours-feries/$id');
+
+  // ════════════════════════════════════════════════════════════
+  // 11. NOTIFICATIONS
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getNotifications({bool? readOnly}) =>
+      _dio.get('/notifications', queryParameters: {
+        if (readOnly == false) 'read': 'false',
+      });
+
+  Future<Response> markNotificationRead(String id) =>
+      _dio.put('/notifications/$id/read');
+
+  Future<Response> markAllNotificationsRead() =>
+      _dio.put('/notifications/read-all');
+
+  // ════════════════════════════════════════════════════════════
+  // 12. SANCTIONS
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getMySanctions() => _dio.get('/sanctions/me');
+
+  Future<Response> getAllSanctions({String? serviceId}) =>
+      _dio.get('/sanctions/all', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+      });
+
+  Future<Response> getSanctionsByEmployee(String employeeId) =>
+      _dio.get('/sanctions/employee/$employeeId');
+
+  Future<Response> traiterSanction(String id, String commentaire) =>
+      _dio.put('/sanctions/$id/traiter', data: {'commentaire': commentaire});
+
+  // ════════════════════════════════════════════════════════════
+  // 13. EXPORTS
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> exportPointages({String? month, String format = 'excel'}) =>
+      _dio.get('/exports/pointages', queryParameters: {
+        if (month != null) 'month': month,
+        'format': format,
+      });
+
+  Future<Response> exportAbsences({String? month, String format = 'pdf'}) =>
+      _dio.get('/exports/absences', queryParameters: {
+        if (month != null) 'month': month,
+        'format': format,
+      });
+
+  Future<Response> exportPaie({String? month}) =>
+      _dio.get('/exports/paie', queryParameters: {
+        if (month != null) 'month': month,
+      });
+
+  Future<Response> exportDisciplinaire({String? employeeId}) =>
+      _dio.get('/exports/disciplinaire', queryParameters: {
+        if (employeeId != null) 'employeeId': employeeId,
+      });
+
+  // ════════════════════════════════════════════════════════════
+  // 14. STATISTIQUES
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getMonthStats() => _dio.get('/stats/month');
+
+  Future<Response> getGlobalStats({String? serviceId}) =>
+      _dio.get('/stats/global', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+      });
+
+  // ════════════════════════════════════════════════════════════
+  // 15. TYPES D'ABSENCE
+  // ════════════════════════════════════════════════════════════
+
+  Future<Response> getTypesAbsence() => _dio.get('/types-absence');
 }

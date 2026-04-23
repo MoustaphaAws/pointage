@@ -5,8 +5,10 @@ class AppColors {
   // Primary palette — noir/violet premium
   static const Color primaryBlack = Color(0xFF0F0F0F);
   static const Color violet600 = Color(0xFF7C3AED);
+  static const Color violet700 = Color(0xFF6D28D9);
   static const Color violet500 = Color(0xFF8B5CF6);
   static const Color violet400 = Color(0xFFA78BFA);
+  static const Color violet200 = Color(0xFFDDD6FE);
   static const Color violet100 = Color(0xFFEDE9FE);
   static const Color violet50 = Color(0xFFF5F3FF);
 
@@ -17,6 +19,7 @@ class AppColors {
   static const Color slate300 = Color(0xFFCBD5E1);
   static const Color slate400 = Color(0xFF94A3B8);
   static const Color slate500 = Color(0xFF64748B);
+  static const Color slate600 = Color(0xFF475569);
   static const Color slate700 = Color(0xFF334155);
   static const Color slate800 = Color(0xFF1E293B);
   static const Color slate900 = Color(0xFF0F172A);

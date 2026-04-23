@@ -4,7 +4,14 @@ import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import 'employee_dashboard.dart';
 import 'admin_dashboard.dart';
-
+import 'employee_list_screen.dart';
+import 'absence_validation_screen.dart';
+import 'alertes_disciplinaires_screen.dart';
+import 'rapports_screen.dart';
+import 'employee_pointages_screen.dart';
+import 'employee_absences_screen.dart';
+import 'employee_notifications_screen.dart';
+import 'employee_profile_screen.dart';
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
@@ -80,7 +87,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      user?.name ?? '',
+                      user?.fullName ?? '',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -110,9 +117,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    user?.name.isNotEmpty == true
-                        ? user!.name[0].toUpperCase()
-                        : '?',
+                    user?.initials ?? '?',
                     style: const TextStyle(
                       color: AppColors.violet400,
                       fontWeight: FontWeight.w900,
@@ -230,14 +235,24 @@ class _MainShellState extends ConsumerState<MainShell> {
           screen: const EmployeeDashboard(),
         ),
         _TabConfig(
+          icon: Icons.access_time_rounded,
+          label: 'Pointages',
+          screen: const EmployeePointagesScreen(),
+        ),
+        _TabConfig(
           icon: Icons.calendar_month_rounded,
           label: 'Absences',
-          screen: const _PlaceholderScreen(module: 'Absences'),
+          screen: const EmployeeAbsencesScreen(),
+        ),
+        _TabConfig(
+          icon: Icons.notifications_none_rounded,
+          label: 'Alertes',
+          screen: const EmployeeNotificationsScreen(),
         ),
         _TabConfig(
           icon: Icons.person_rounded,
           label: 'Profil',
-          screen: const _PlaceholderScreen(module: 'Profil'),
+          screen: const EmployeeProfileScreen(),
         ),
       ];
 
@@ -250,17 +265,22 @@ class _MainShellState extends ConsumerState<MainShell> {
         _TabConfig(
           icon: Icons.people_rounded,
           label: 'Employés',
-          screen: const _PlaceholderScreen(module: 'Gestion RH'),
+          screen: const EmployeeListScreen(),
         ),
         _TabConfig(
           icon: Icons.check_circle_rounded,
           label: 'Validation',
-          screen: const _PlaceholderScreen(module: 'Validation'),
+          screen: const AbsenceValidationScreen(),
         ),
         _TabConfig(
           icon: Icons.shield_rounded,
           label: 'Alertes',
-          screen: const _PlaceholderScreen(module: 'Disciplinaire'),
+          screen: const AlertesDisciplinairesScreen(),
+        ),
+        _TabConfig(
+          icon: Icons.insert_chart_rounded,
+          label: 'Rapports',
+          screen: const RapportsScreen(),
         ),
       ];
 }
@@ -271,57 +291,4 @@ class _TabConfig {
   final Widget screen;
 
   _TabConfig({required this.icon, required this.label, required this.screen});
-}
-
-// Placeholder for unbuilt modules
-class _PlaceholderScreen extends StatelessWidget {
-  final String module;
-  const _PlaceholderScreen({required this.module});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.slate100,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.slate200),
-              ),
-              child: const Icon(
-                Icons.smartphone_rounded,
-                size: 40,
-                color: AppColors.slate300,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Module "$module" en déploiement',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.slate800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Cette fonctionnalité sera active dans la prochaine itération.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.slate500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

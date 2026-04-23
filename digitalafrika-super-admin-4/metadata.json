@@ -1,0 +1,6 @@
+{
+  "name": "DigitalAfrika Super Admin",
+  "description": "Plateforme web de gestion absolue pour le Super Admin de DigitalAfrika. Contrôle total du pointage RFID, des employés, des administrateurs RH et des paramètres de l'entreprise.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["DASHBOARD", "USER_MANAGEMENT", "AUDIT_LOGS", "SETTINGS"]
+}

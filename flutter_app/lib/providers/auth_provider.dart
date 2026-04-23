@@ -36,19 +36,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true);
     try {
       final token = await _storage.read(key: 'token');
-      final userData = await _storage.read(key: 'user_name');
+      final firstName = await _storage.read(key: 'user_firstName');
+      final lastName = await _storage.read(key: 'user_lastName');
       final userEmail = await _storage.read(key: 'user_email');
       final userRole = await _storage.read(key: 'user_role');
       final userId = await _storage.read(key: 'user_id');
-      final userService = await _storage.read(key: 'user_service');
+      final userMatricule = await _storage.read(key: 'user_matricule');
+      final userServiceId = await _storage.read(key: 'user_serviceId');
+      final userServiceName = await _storage.read(key: 'user_serviceName');
+      final userPoste = await _storage.read(key: 'user_poste');
+      final userTypeContrat = await _storage.read(key: 'user_typeContrat');
+      final heureDebut = await _storage.read(key: 'user_heureDebut');
+      final heureFin = await _storage.read(key: 'user_heureFin');
+      final dateEmbauche = await _storage.read(key: 'user_dateEmbauche');
 
-      if (token != null && userData != null) {
+      if (token != null && firstName != null) {
         final user = Employee(
           id: userId ?? '',
-          name: userData,
+          matricule: userMatricule ?? '',
+          firstName: firstName,
+          lastName: lastName ?? '',
           email: userEmail ?? '',
           role: userRole ?? 'employee',
-          service: userService ?? '',
+          serviceId: userServiceId ?? '',
+          serviceName: userServiceName,
+          poste: userPoste ?? '',
+          typeContrat: userTypeContrat ?? 'CDI',
+          heureDebut: heureDebut ?? '08:00',
+          heureFin: heureFin ?? '17:00',
+          dateEmbauche: dateEmbauche ?? '',
         );
         state = state.copyWith(user: user, token: token, isLoading: false);
       } else {
@@ -69,17 +85,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = data['token'] as String;
       final user = Employee.fromJson(data['user']);
 
-      // Persist
+      // Persist all user fields
       await _storage.write(key: 'token', value: token);
-      await _storage.write(key: 'user_name', value: user.name);
+      await _storage.write(key: 'user_id', value: user.id);
+      await _storage.write(key: 'user_matricule', value: user.matricule);
+      await _storage.write(key: 'user_firstName', value: user.firstName);
+      await _storage.write(key: 'user_lastName', value: user.lastName);
       await _storage.write(key: 'user_email', value: user.email);
       await _storage.write(key: 'user_role', value: user.role);
-      await _storage.write(key: 'user_id', value: user.id);
-      await _storage.write(key: 'user_service', value: user.service);
+      await _storage.write(key: 'user_serviceId', value: user.serviceId);
+      await _storage.write(key: 'user_serviceName', value: user.serviceName ?? '');
+      await _storage.write(key: 'user_poste', value: user.poste);
+      await _storage.write(key: 'user_typeContrat', value: user.typeContrat);
+      await _storage.write(key: 'user_heureDebut', value: user.heureDebut);
+      await _storage.write(key: 'user_heureFin', value: user.heureFin);
+      await _storage.write(key: 'user_dateEmbauche', value: user.dateEmbauche);
 
       state = state.copyWith(user: user, token: token, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Identifiants invalides');
+      final errorMsg = e is Exception ? e.toString() : 'Identifiants invalides';
+      state = state.copyWith(isLoading: false, error: errorMsg);
     }
   }
 
@@ -89,12 +114,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-// ─── Provider ───
+// ─── Providers ───
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });
 
-// Convenience providers
 final currentUserProvider = Provider<Employee?>((ref) {
   return ref.watch(authProvider).user;
 });

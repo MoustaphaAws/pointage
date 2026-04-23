@@ -16,11 +16,27 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_secure_storage: ^9.2.4
   intl: ^0.19.0
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
+  printing: ^5.13.4
+  pdf: ^3.11.2
+  file_picker: ^11.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/new_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1A237E"
+  adaptive_icon_foreground: "assets/icon/new_icon.png"

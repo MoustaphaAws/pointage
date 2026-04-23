@@ -12,8 +12,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _emailController = TextEditingController(text: 'admin@propointage.com');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -207,24 +207,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                       const SizedBox(height: 8),
 
-                      // Demo credentials
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.slate50,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.slate100),
-                        ),
-                        child: const Text(
-                          'Démos:\nAdmin: admin@propointage.com / admin123\nEmployé: emp@propointage.com / emp123',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.slate400,
-                            fontStyle: FontStyle.italic,
-                            height: 1.5,
+                      // Quick login buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                _emailController.text = 'admin@propointage.com';
+                                _passwordController.text = 'admin123';
+                              },
+                              icon: const Icon(Icons.admin_panel_settings, size: 16),
+                              label: const Text('Admin', style: TextStyle(fontSize: 11)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.violet600,
+                                side: const BorderSide(color: AppColors.violet100),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                _emailController.text = 'emp@propointage.com';
+                                _passwordController.text = 'emp123';
+                              },
+                              icon: const Icon(Icons.person, size: 16),
+                              label: const Text('Employé', style: TextStyle(fontSize: 11)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.slate500,
+                                side: const BorderSide(color: AppColors.slate300),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                _emailController.text = 'client@propointage.com';
+                                _passwordController.text = 'client123';
+                              },
+                              icon: const Icon(Icons.business_center, size: 16),
+                              label: const Text('Client', style: TextStyle(fontSize: 11)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.slate700,
+                                side: const BorderSide(color: AppColors.slate400),
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
 
