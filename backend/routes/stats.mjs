@@ -128,4 +128,47 @@ router.get("/global", requireAdmin, async (req, res, next) => {
   }
 });
 
+// ─── GET /api/stats/weekly-pointages ─── (Admin: stats pour le graphique)
+router.get("/weekly-pointages", requireAdmin, async (req, res, next) => {
+  console.log("📊 Requête stats hebdo reçue pour service:", req.query.service || "Tous");
+  try {
+    const { service } = req.query;
+    const serviceFilter = req.auth.role === "admin" ? req.auth.serviceId : service;
+
+    let sql = `
+      SELECT 
+        EXTRACT(ISODOW FROM date) AS day_of_week,
+        COUNT(*) FILTER (WHERE statut = 'present')::int AS presences,
+        COUNT(*) FILTER (WHERE statut = 'retard')::int AS retards
+      FROM pointages p
+      JOIN employes e ON e.id = p.employe_id
+      WHERE date >= CURRENT_DATE - CAST(EXTRACT(ISODOW FROM CURRENT_DATE) - 1 AS int) 
+      AND date <= CURRENT_DATE + CAST(7 - EXTRACT(ISODOW FROM CURRENT_DATE) AS int)
+      AND EXTRACT(ISODOW FROM date) <= 5
+    `;
+    let params = [];
+    if (serviceFilter) {
+      params.push(serviceFilter);
+      sql += ` AND e.service_id = $${params.length}`;
+    }
+    sql += ` GROUP BY day_of_week ORDER BY day_of_week`;
+
+    const result = await query(sql, params);
+    
+    // Format response: Array of 5 days (1 to 5)
+    const weeklyData = [1,2,3,4,5].map(day => {
+      const row = result.rows.find(r => parseInt(r.day_of_week) === day);
+      return {
+        day,
+        presences: row ? parseInt(row.presences) : 0,
+        retards: row ? parseInt(row.retards) : 0
+      };
+    });
+
+    res.json(weeklyData);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

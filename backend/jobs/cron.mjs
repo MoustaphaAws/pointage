@@ -52,7 +52,7 @@ export function initCronJobs() {
         // Créer une notification pour l'employé
         await query(`
           INSERT INTO notifications (employe_id, type, titre, message)
-          VALUES ($1, 'systeme', 'Absence enregistrée', 'Vous avez été marqué comme absent aujourd''hui. Veuillez soumettre un justificatif si nécessaire.')
+          VALUES ($1, 'system', 'Absence enregistrée', 'Vous avez été marqué comme absent aujourd''hui. Veuillez soumettre un justificatif si nécessaire.')
         `, [empId]);
       }
       

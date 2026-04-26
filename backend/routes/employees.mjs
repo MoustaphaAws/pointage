@@ -95,7 +95,7 @@ router.post("/", requireAdmin, async (req, res, next) => {
     await query(
       `INSERT INTO notifications (employe_id, type, titre, message)
        VALUES ($1, 'bienvenue', 'Bienvenue !', $2)`,
-      [emp.id, `Bienvenue chez DigitalAfrika. Votre identifiant : ${email} / Mot de passe temporaire : ${defaultPassword}`]
+      [emp.id, `Bienvenue chez DigitalAfrika. Votre identifiant de connexion est : ${email}`]
     );
 
     // Enrichir avec le service name

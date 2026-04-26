@@ -76,11 +76,10 @@ router.post("/admins", async (req, res, next) => {
     const created = insert.rows[0];
 
     // Notification de bienvenue
-    const defaultPwd = password;
     await query(
       `INSERT INTO notifications (employe_id, type, titre, message)
        VALUES ($1, 'bienvenue', 'Bienvenue !', $2)`,
-      [created.id, `Bienvenue chez DigitalAfrika. Identifiant : ${email} / Mot de passe temporaire : ${defaultPwd}`]
+      [created.id, `Bienvenue chez DigitalAfrika. Votre identifiant de connexion est : ${email}`]
     );
 
     if (actor) {

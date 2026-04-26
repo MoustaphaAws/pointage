@@ -33,13 +33,19 @@ const PORT = Number(process.env.PORT || 3001);
 const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://10.0.2.2:3001").split(",");
 app.use(cors({
   origin: (origin, callback) => {
-    // Permettre les requêtes sans origin (mobile apps, curl) ou depuis n'importe quel port localhost
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith("http://localhost:")) {
+    const isLocalhost = origin && (
+      origin.startsWith("http://localhost:") || 
+      origin.startsWith("http://127.0.0.1:") ||
+      origin === "http://localhost" ||
+      origin === "http://127.0.0.1"
+    );
+
+    if (!origin || allowedOrigins.includes(origin) || isLocalhost) {
       callback(null, true);
     } else if (process.env.NODE_ENV === "production") {
       callback(new Error(`Origine non autorisée: ${origin}`));
     } else {
-      callback(null, true); // En dev, on accepte tout
+      callback(null, true);
     }
   },
   credentials: true,
@@ -62,7 +68,12 @@ const authLimiter = rateLimit({
 
 // Health check
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "digitalafrika-api", version: "1.0.0" });
+  res.json({ 
+    ok: true, 
+    service: "digitalafrika-api", 
+    version: "1.0.1",
+    deployedAt: new Date().toISOString()
+  });
 });
 
 // Auth (avec rate limit)
