@@ -66,17 +66,45 @@ class _MainShellState extends ConsumerState<MainShell> {
           ],
         ),
         actions: [
-          const Icon(Icons.search, color: AppColors.slate500),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: AppColors.violet700,
-            child: Text(
-              user?.initials ?? '?',
-              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.search, color: AppColors.slate500, size: 22),
+          ),
+          InkWell(
+            onTap: () {
+              if (isAdmin) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Scaffold(
+                      backgroundColor: AppColors.slate50,
+                      appBar: AppBar(
+                        title: const Text('Mon Profil', style: TextStyle(fontWeight: FontWeight.w800)),
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      body: const EmployeeProfileScreen(),
+                    ),
+                  ),
+                );
+              } else {
+                setState(() => _currentIndex = 4);
+              }
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.violet700,
+                child: Text(
+                  user?.initials ?? '?',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
         ],
       ),
       body: IndexedStack(

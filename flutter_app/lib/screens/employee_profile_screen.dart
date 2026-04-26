@@ -9,13 +9,18 @@ class EmployeeProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final isAdmin = user?.isAdmin ?? false;
+
     return ListView(
       padding: const EdgeInsets.only(top: 16, bottom: 90, left: 16, right: 16),
-      children: const <Widget>[
-        _ProfileHeaderCard(),
-        SizedBox(height: 18),
-        _MetricRow(),
-        SizedBox(height: 20),
+      children: <Widget>[
+        const _ProfileHeaderCard(),
+        if (!isAdmin) ...[
+          const SizedBox(height: 18),
+          const _MetricRow(),
+        ],
+        const SizedBox(height: 20),
         Text('INFORMATIONS PERSONNELLES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.slate500, letterSpacing: 1.1)),
         SizedBox(height: 8),
         _InfoSection(),
