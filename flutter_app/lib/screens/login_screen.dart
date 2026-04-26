@@ -89,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryBlack,
+                          color: AppColors.violet700,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: AppColors.violet500.withValues(alpha: 0.2),
@@ -268,7 +268,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           onPressed: authState.isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 18),
-                            backgroundColor: AppColors.primaryBlack,
+                            backgroundColor: AppColors.violet700,
                           ),
                           child: authState.isLoading
                               ? const SizedBox(

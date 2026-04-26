@@ -178,10 +178,10 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlack : AppColors.slate50,
+          color: isSelected ? AppColors.violet700 : AppColors.slate50,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primaryBlack : AppColors.slate200,
+            color: isSelected ? AppColors.violet700 : AppColors.slate200,
           ),
         ),
         child: Text(
@@ -254,8 +254,8 @@ class _ReportCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
         boxShadow: [
           BoxShadow(
             color: AppColors.slate200.withValues(alpha: 0.2),

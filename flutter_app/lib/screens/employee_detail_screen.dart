@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
 import 'employee_form_screen.dart';
@@ -49,7 +50,7 @@ class EmployeeDetailScreen extends ConsumerWidget {
     return SliverAppBar(
       expandedHeight: 340,
       pinned: true,
-      backgroundColor: AppColors.primaryBlack,
+      backgroundColor: AppColors.violet700,
       foregroundColor: Colors.white,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded),
@@ -92,7 +93,7 @@ class EmployeeDetailScreen extends ConsumerWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [AppColors.primaryBlack, Color(0xFF1A1A2E)],
+              colors: [AppColors.violet700, Color(0xFF1A1A2E)],
             ),
           ),
           child: SafeArea(
@@ -321,8 +322,8 @@ class _PointageTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
       ),
       child: Row(
         children: [
@@ -493,8 +494,8 @@ class _AbsenceTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
       ),
       child: Row(
         children: [
@@ -611,7 +612,7 @@ class _SanctionTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: typeConfig.color.withValues(alpha: 0.3)),
       ),
       child: Column(

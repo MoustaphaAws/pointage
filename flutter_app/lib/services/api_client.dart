@@ -8,13 +8,16 @@ class ApiClient {
 
   // URL dynamique selon l'environnement
   static String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3001/api'; // Pour Chrome (Web)
-    }
-    return 'http://10.0.2.2:3001/api'; // Pour Android Emulator
+    const defined = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (defined.isNotEmpty) return defined;
+
+    // Production & Default Dev: Render
+    return 'https://pointage-ufj2.onrender.com/api';
   }
 
-  ApiClient({this.token}) {
+  final VoidCallback? onUnauthorized;
+
+  ApiClient({this.token, this.onUnauthorized}) {
     _dio = Dio(BaseOptions(
       baseUrl: _baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -22,6 +25,17 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
+      },
+    ));
+
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (DioException e, handler) {
+        if (e.response?.statusCode == 401) {
+          if (onUnauthorized != null) {
+            onUnauthorized!();
+          }
+        }
+        return handler.next(e);
       },
     ));
   }
@@ -280,6 +294,11 @@ class ApiClient {
 
   Future<Response> getGlobalStats({String? serviceId}) =>
       _dio.get('/stats/global', queryParameters: {
+        if (serviceId != null) 'service': serviceId,
+      });
+
+  Future<Response> getWeeklyPointages({String? serviceId}) =>
+      _dio.get('/stats/weekly-pointages', queryParameters: {
         if (serviceId != null) 'service': serviceId,
       });
 

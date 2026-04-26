@@ -1,0 +1,21 @@
+build/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/android/
+/ios/
+/linux/
+/macos/
+/windows/
+/web/

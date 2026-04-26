@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
@@ -20,57 +21,6 @@ class _EmployeePointagesScreenState extends ConsumerState<EmployeePointagesScree
 
     return Scaffold(
       backgroundColor: AppColors.slate50,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Mes Pointages',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: AppColors.slate900,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ['Cette semaine', 'Ce mois', 'Mois précédent']
-                    .map((f) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () => setState(() => _selectedFilter = f),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedFilter == f ? AppColors.primaryBlack : AppColors.slate100,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _selectedFilter == f ? AppColors.primaryBlack : AppColors.slate200,
-                                ),
-                              ),
-                              child: Text(
-                                f,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedFilter == f ? Colors.white : AppColors.slate500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-          ),
-        ),
-      ),
       body: pointagesAsync.when(
         data: (pointages) {
           // Filtrer selon la période sélectionnée
@@ -95,46 +45,96 @@ class _EmployeePointagesScreenState extends ConsumerState<EmployeePointagesScree
             }
           }).toList();
 
-          if (filtered.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: AppColors.slate100,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(Icons.access_time_rounded, size: 32, color: AppColors.slate400),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Aucun pointage',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.slate900),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Vous n\'avez pas encore pointé sur cette période.',
-                    style: TextStyle(fontSize: 13, color: AppColors.slate400),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return RefreshIndicator(
             color: AppColors.violet600,
             onRefresh: () async => ref.invalidate(pointageHistoryProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final pointage = filtered[index];
-                return _PointageTile(pointage: pointage);
-              },
+            child: ListView(
+              padding: const EdgeInsets.only(top: 16, bottom: 90, left: 16, right: 16),
+              children: <Widget>[
+                const Text('Historique', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.primaryBlack)),
+                const SizedBox(height: 4),
+                const Text('Consultez vos pointages et votre présence.', style: TextStyle(color: AppColors.slate500)),
+                const SizedBox(height: 16),
+
+                // Filters
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['Cette semaine', 'Ce mois', 'Mois précédent']
+                        .map((f) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: InkWell(
+                                onTap: () => setState(() => _selectedFilter = f),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _selectedFilter == f ? AppColors.violet700 : Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: _selectedFilter == f ? AppColors.violet700 : AppColors.slate200,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    f,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedFilter == f ? Colors.white : AppColors.slate500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                if (filtered.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: AppColors.slate200.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Icon(Icons.access_time_rounded, size: 32, color: AppColors.slate400),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Aucun pointage',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primaryBlack),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Vous n\'avez pas encore pointé sur cette période.',
+                            style: TextStyle(fontSize: 13, color: AppColors.slate500),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...filtered.expand((pointage) {
+                    return [
+                      _HistoryDayHeader(
+                        date: _formatHeaderDate(pointage.date),
+                        total: pointage.formattedDuration,
+                      ),
+                      const SizedBox(height: 12),
+                      _DayCard(pointage: pointage),
+                      const SizedBox(height: 24),
+                    ];
+                  }),
+              ],
             ),
           );
         },
@@ -143,173 +143,165 @@ class _EmployeePointagesScreenState extends ConsumerState<EmployeePointagesScree
       ),
     );
   }
-}
 
-class _PointageTile extends StatelessWidget {
-  final Pointage pointage;
-  const _PointageTile({required this.pointage});
-
-  @override
-  Widget build(BuildContext context) {
-    final statusConfig = _statusConfig(pointage.status);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.slate200),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.slate200.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header Date + Statut
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: statusConfig.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(statusConfig.icon, color: statusConfig.color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pointage.date,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.slate900,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      statusConfig.label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: statusConfig.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (pointage.isLate)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.amber100,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '+${pointage.delayMinutes} min',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.amber700,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          
-          if (pointage.status == 'present' || pointage.status == 'retard') ...[
-            const SizedBox(height: 16),
-            const Divider(color: AppColors.slate100, height: 1),
-            const SizedBox(height: 12),
-            // Heures Check-In et Check-Out
-            Row(
-              children: [
-                Expanded(
-                  child: _TimeBlock(
-                    direction: 'in',
-                    time: pointage.checkIn,
-                    color: AppColors.emerald500,
-                  ),
-                ),
-                Container(width: 1, height: 30, color: AppColors.slate200),
-                Expanded(
-                  child: _TimeBlock(
-                    direction: 'out',
-                    time: pointage.checkOut,
-                    color: AppColors.rose500,
-                  ),
-                ),
-              ],
-            ),
-          ]
-        ],
-      ),
-    );
-  }
-
-  _StatusConfig _statusConfig(String status) {
-    switch (status) {
-      case 'present':
-        return _StatusConfig('Présent', AppColors.emerald500, Icons.check_circle_rounded);
-      case 'retard':
-        return _StatusConfig('En retard', AppColors.amber500, Icons.warning_rounded);
-      case 'absent':
-        return _StatusConfig('Absent', AppColors.rose500, Icons.cancel_rounded);
-      case 'jour_ferie':
-        return _StatusConfig('Jour férié', AppColors.sky600, Icons.celebration_rounded);
-      case 'weekend':
-        return _StatusConfig('Weekend', AppColors.slate400, Icons.weekend_rounded);
-      default:
-        return _StatusConfig('Non pointé', AppColors.slate400, Icons.remove_circle_outline_rounded);
-    }
+  String _formatHeaderDate(String rawDate) {
+    try {
+      final parts = rawDate.split('-');
+      if (parts.length == 3) {
+        final date = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        return DateFormat('EEE, d MMM', 'fr_FR').format(date).toUpperCase();
+      }
+    } catch (_) {}
+    return rawDate;
   }
 }
 
-class _TimeBlock extends StatelessWidget {
-  final String direction;
-  final String? time;
-  final Color color;
-
-  const _TimeBlock({required this.direction, required this.time, required this.color});
+class _HistoryDayHeader extends StatelessWidget {
+  const _HistoryDayHeader({required this.date, required this.total});
+  final String date;
+  final String total;
 
   @override
   Widget build(BuildContext context) {
-    final bool isIn = direction == 'in';
-    
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(isIn ? Icons.login_rounded : Icons.logout_rounded, size: 16, color: color),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isIn ? 'ARRIVÉE' : 'DÉPART',
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.slate400),
-            ),
-            Text(
-              time ?? '--:--',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.slate900),
-            ),
-          ],
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(date, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.slate500, letterSpacing: 1.1)),
+          ),
         ),
+        const SizedBox(width: 12),
+        Text(total.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.violet700, letterSpacing: 1.1)),
       ],
     );
   }
 }
 
-class _StatusConfig {
-  final String label;
-  final Color color;
+class _DayCard extends StatelessWidget {
+  final Pointage pointage;
+  const _DayCard({required this.pointage});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.slate200, width: 0.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: <Widget>[
+            if (pointage.checkIn != null)
+              _TimeEntry(
+                icon: Icons.login,
+                iconBg: AppColors.violet700.withValues(alpha: 0.1),
+                iconColor: AppColors.violet700,
+                label: 'POINTAGE ENTRÉE',
+                time: pointage.checkIn!,
+                location: 'Vérifié par Token/NFC',
+                verified: true,
+              ),
+            if (pointage.checkIn != null && pointage.checkOut != null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Divider(color: AppColors.slate200, thickness: 0.5),
+              ),
+            if (pointage.checkOut != null)
+              _TimeEntry(
+                icon: Icons.logout,
+                iconBg: AppColors.rose500.withValues(alpha: 0.1),
+                iconColor: AppColors.rose500,
+                label: 'POINTAGE SORTIE',
+                time: pointage.checkOut!,
+                location: 'Vérifié par Token/NFC',
+              ),
+            if (pointage.checkIn == null && pointage.checkOut == null)
+              const Center(
+                child: Text('Aucune entrée', style: TextStyle(color: AppColors.slate500)),
+              )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimeEntry extends StatelessWidget {
+  const _TimeEntry({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.label,
+    required this.time,
+    required this.location,
+    this.verified = false,
+  });
+
   final IconData icon;
-  _StatusConfig(this.label, this.color, this.icon);
+  final Color iconBg;
+  final Color iconColor;
+  final String label;
+  final String time;
+  final String location;
+  final bool verified;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(label, style: const TextStyle(fontSize: 10, letterSpacing: 1.0, color: AppColors.slate500, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(time, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primaryBlack)),
+              const SizedBox(height: 4),
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.location_on, size: 13, color: AppColors.slate500),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Text(
+                      location,
+                      style: const TextStyle(fontSize: 13, color: AppColors.slate500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (verified)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.emerald100,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'VÉRIFIÉ',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.emerald700, letterSpacing: 0.5),
+            ),
+          ),
+      ],
+    );
+  }
 }

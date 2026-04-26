@@ -14,288 +14,214 @@ class EmployeeNotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.slate50,
-      body: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.slate900,
-                        letterSpacing: -0.5,
+      body: notifs.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.violet700)),
+        error: (err, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.slate300),
+              const SizedBox(height: 12),
+              const Text('Impossible de charger les alertes', style: TextStyle(color: AppColors.slate500, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(myNotificationsProvider),
+                child: const Text('Réessayer'),
+              ),
+            ],
+          ),
+        ),
+        data: (list) {
+          final unreadCount = ref.watch(unreadNotifCountProvider);
+          return RefreshIndicator(
+            color: AppColors.violet700,
+            onRefresh: () async => ref.invalidate(myNotificationsProvider),
+            child: ListView(
+              padding: const EdgeInsets.only(top: 16, bottom: 90, left: 16, right: 16),
+              children: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Alertes',
+                          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.primaryBlack),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Consumer(builder: (context, ref, _) {
-                      final count = ref.watch(unreadNotifCountProvider);
-                      return Text(
-                        count > 0 ? '$count non lue${count > 1 ? 's' : ''}' : 'Tout est lu',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: count > 0 ? AppColors.violet600 : AppColors.slate400,
-                        ),
-                      );
-                    }),
+                    const SizedBox(width: 12),
+                    if (unreadCount > 0)
+                      InkWell(
+                        onTap: () async {
+                          final api = ref.read(apiClientProvider);
+                          if (api == null) return;
+                          try {
+                            await api.markAllNotificationsRead();
+                            ref.invalidate(myNotificationsProvider);
+                          } catch (_) {}
+                        },
+                        child: const Text('TOUT LIRE', style: TextStyle(color: AppColors.violet700, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                      ),
                   ],
                 ),
-                // Bouton "Tout marquer lu"
-                Consumer(builder: (context, ref, _) {
-                  final count = ref.watch(unreadNotifCountProvider);
-                  if (count == 0) return const SizedBox.shrink();
-                  return TextButton.icon(
-                    onPressed: () async {
-                      final api = ref.read(apiClientProvider);
-                      if (api == null) return;
-                      try {
-                        await api.markAllNotificationsRead();
-                        ref.invalidate(myNotificationsProvider);
-                      } catch (_) {}
-                    },
-                    icon: const Icon(Icons.done_all_rounded, size: 18),
-                    label: const Text('Tout lire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.violet600,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(color: AppColors.violet200),
+                const SizedBox(height: 12),
+                if (list.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: AppColors.slate200.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(Icons.notifications_off_rounded, size: 36, color: AppColors.slate400),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Aucune alerte',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.primaryBlack),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Vous recevrez ici les alertes de retard,\nvalidations d\'absence et sanctions.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: AppColors.slate500, height: 1.5),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }),
+                  )
+                else
+                  ...list.map((notif) => _AlertTile(
+                    notification: notif,
+                    onTap: () async {
+                      if (!notif.lue) {
+                        final api = ref.read(apiClientProvider);
+                        if (api != null) {
+                          try {
+                            await api.markNotificationRead(notif.id);
+                            ref.invalidate(myNotificationsProvider);
+                          } catch (_) {}
+                        }
+                      }
+                    },
+                  )),
               ],
             ),
-          ),
-
-          // Liste
-          Expanded(
-            child: notifs.when(
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.violet600)),
-              error: (err, _) => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.slate300),
-                    const SizedBox(height: 12),
-                    Text('Impossible de charger les notifications', style: TextStyle(color: AppColors.slate500, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => ref.invalidate(myNotificationsProvider),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
-              ),
-              data: (list) {
-                if (list.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: AppColors.slate100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.notifications_off_rounded, size: 36, color: AppColors.slate300),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Aucune notification',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.slate700),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Vous recevrez ici les alertes de retard,\nvalidations d\'absence et sanctions.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: AppColors.slate400, height: 1.5),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return RefreshIndicator(
-                  color: AppColors.violet600,
-                  onRefresh: () async => ref.invalidate(myNotificationsProvider),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    itemCount: list.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final notif = list[index];
-                      return _NotificationTile(
-                        notification: notif,
-                        onTap: () async {
-                          if (!notif.lue) {
-                            final api = ref.read(apiClientProvider);
-                            if (api != null) {
-                              try {
-                                await api.markNotificationRead(notif.id);
-                                ref.invalidate(myNotificationsProvider);
-                              } catch (_) {}
-                            }
-                          }
-                        },
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+class _AlertTile extends StatelessWidget {
   final AppNotification notification;
   final VoidCallback onTap;
 
-  const _NotificationTile({required this.notification, required this.onTap});
+  const _AlertTile({required this.notification, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final iconData = _iconForType(notification.type);
-    final iconColor = _colorForType(notification.type);
-    final bgColor = _bgColorForType(notification.type);
-    final timeAgo = _formatTimeAgo(notification.createdAt);
+    final isWarning = notification.type == 'retard' || notification.type == 'sanction' || notification.type == 'absence_rejetee';
+    final (IconData icon, Color iconBg, Color iconFg) = switch (notification.type) {
+      'retard' || 'sanction' || 'absence_rejetee' => (Icons.notifications_active, AppColors.rose500.withValues(alpha: 0.1), AppColors.rose500),
+      'absence_validee' || 'bienvenue' => (Icons.check_circle, AppColors.violet700.withValues(alpha: 0.1), AppColors.violet700),
+      _ => (Icons.info_outline, AppColors.violet700.withValues(alpha: 0.1), AppColors.violet700),
+    };
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: notification.lue ? Colors.white : AppColors.violet50,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: notification.lue ? AppColors.slate200 : AppColors.violet200,
-            width: notification.lue ? 1 : 1.5,
-          ),
+          color: notification.lue ? AppColors.slate50 : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: notification.lue ? AppColors.slate200.withValues(alpha: 0.5) : AppColors.violet200),
+          boxShadow: notification.lue ? null : [
+            BoxShadow(
+              color: AppColors.slate200.withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icône
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(iconData, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            // Contenu
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (!notification.lue)
+                Container(
+                  width: 4,
+                  color: isWarning ? AppColors.rose500 : AppColors.violet700,
+                ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                        child: Icon(icon, color: iconFg, size: 22),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          notification.titre,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: notification.lue ? FontWeight.w600 : FontWeight.w800,
-                            color: AppColors.slate900,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Expanded(
+                                  child: Text(
+                                    notification.titre,
+                                    style: const TextStyle(fontSize: 16, height: 1.05, color: AppColors.primaryBlack, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (isWarning)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.rose500.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Text(
+                                      'ATTENTION',
+                                      style: TextStyle(fontSize: 8, color: AppColors.rose700, fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(notification.message, style: const TextStyle(fontSize: 13, color: AppColors.slate500, height: 1.35)),
+                            const SizedBox(height: 8),
+                            Text(_formatTimeAgo(notification.createdAt).toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.slate500, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                          ],
                         ),
                       ),
-                      if (!notification.lue)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.violet600,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.message,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.slate500,
-                      height: 1.4,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    timeAgo,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.slate400,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  IconData _iconForType(String type) {
-    switch (type) {
-      case 'retard': return Icons.schedule_rounded;
-      case 'absence_validee': return Icons.check_circle_rounded;
-      case 'absence_rejetee': return Icons.cancel_rounded;
-      case 'absence_annulee': return Icons.undo_rounded;
-      case 'sanction': return Icons.shield_rounded;
-      case 'rappel': return Icons.warning_amber_rounded;
-      case 'bienvenue': return Icons.celebration_rounded;
-      default: return Icons.info_outline_rounded;
-    }
-  }
-
-  Color _colorForType(String type) {
-    switch (type) {
-      case 'retard': return AppColors.amber700;
-      case 'absence_validee': return AppColors.emerald700;
-      case 'absence_rejetee': return AppColors.rose700;
-      case 'absence_annulee': return AppColors.slate600;
-      case 'sanction': return AppColors.rose700;
-      case 'rappel': return AppColors.amber700;
-      case 'bienvenue': return AppColors.violet700;
-      default: return AppColors.sky600;
-    }
-  }
-
-  Color _bgColorForType(String type) {
-    switch (type) {
-      case 'retard': return AppColors.amber100;
-      case 'absence_validee': return AppColors.emerald100;
-      case 'absence_rejetee': return AppColors.rose100;
-      case 'absence_annulee': return AppColors.slate100;
-      case 'sanction': return AppColors.rose100;
-      case 'rappel': return AppColors.amber100;
-      case 'bienvenue': return AppColors.violet100;
-      default: return AppColors.slate100;
-    }
   }
 
   String _formatTimeAgo(String isoDate) {

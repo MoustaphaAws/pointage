@@ -15,12 +15,16 @@ class AdminDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final globalStatsAsync = ref.watch(globalStatsProvider);
     final allAbsencesAsync = ref.watch(allAbsencesProvider);
+    final weeklyPointagesAsync = ref.watch(weeklyPointagesProvider);
+    final activeSanctionsAsync = ref.watch(activeSanctionsProvider);
 
     return RefreshIndicator(
       color: AppColors.violet600,
       onRefresh: () async {
         ref.invalidate(globalStatsProvider);
         ref.invalidate(allAbsencesProvider);
+        ref.invalidate(weeklyPointagesProvider);
+        ref.invalidate(activeSanctionsProvider);
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -43,11 +47,15 @@ class AdminDashboard extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlack,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.violet500.withValues(alpha: 0.2),
-                  ),
+                  color: AppColors.violet700,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.violet700.withValues(alpha: 0.3),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -55,12 +63,12 @@ class AdminDashboard extends ConsumerWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.violet600.withValues(alpha: 0.2),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.qr_code_2_rounded,
-                        color: AppColors.violet400,
+                        color: Colors.white,
                         size: 26,
                       ),
                     ),
@@ -113,33 +121,29 @@ class AdminDashboard extends ConsumerWidget {
                   KpiCard(
                     label: 'Présences (Live)',
                     value: '${stats?.presenceTempsReel ?? 0}%',
-                    subtitle: '↑ 4.2% vs hier',
                   ),
                   KpiCard(
                     label: 'Retards du jour',
                     value: '${stats?.retardsAujourdhui ?? 0}',
-                    borderColor: AppColors.violet500,
-                    valueColor: AppColors.violet600,
-                    subtitle: 'Moyenne: 14 min',
+                    borderColor: AppColors.violet700,
+                    valueColor: AppColors.violet700,
                   ),
                   KpiCard(
                     label: 'Demandes Pending',
                     value: '${stats?.notificationsPending ?? 0}',
                     borderColor: AppColors.rose500,
                     valueColor: AppColors.rose500,
-                    subtitle: 'Action requise',
                   ),
                   KpiCard(
                     label: 'Taux d\'Absentéisme',
                     value: '${stats?.tauxAbsenteisme ?? 0}%',
-                    subtitle: 'Seuil limite: 5.0%',
                   ),
                 ],
               ),
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(color: AppColors.primaryBlack),
+                  child: CircularProgressIndicator(color: AppColors.violet700),
                 ),
               ),
               error: (_, __) => const Center(child: Text('Erreur de chargement')),
@@ -151,8 +155,8 @@ class AdminDashboard extends ConsumerWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.slate200),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.slate200, width: 0.5),
               ),
               child: Column(
                 children: [
@@ -170,94 +174,98 @@ class AdminDashboard extends ConsumerWidget {
                             color: AppColors.slate800,
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'HISTORIQUE',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1,
-                              color: AppColors.violet600,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                   const Divider(),
-                  SizedBox(
-                    height: 260,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
-                      child: BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          barTouchData: BarTouchData(
-                            touchTooltipData: BarTouchTooltipData(
-                              getTooltipColor: (_) => AppColors.slate900,
-                              tooltipRoundedRadius: 8,
+                  weeklyPointagesAsync.when(
+                    data: (weeklyData) => SizedBox(
+                      height: 260,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            barTouchData: BarTouchData(
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipColor: (_) => AppColors.slate900,
+                                tooltipRoundedRadius: 8,
+                              ),
                             ),
-                          ),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 30,
-                                getTitlesWidget: (value, meta) {
-                                  const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(
-                                      days[value.toInt()],
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 30,
+                                  getTitlesWidget: (value, meta) {
+                                    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        days[value.toInt()],
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.slate500,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 30,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toInt().toString(),
                                       style: const TextStyle(
                                         fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.slate500,
+                                        color: AppColors.slate400,
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
+                              ),
+                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            ),
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: 10,
+                              getDrawingHorizontalLine: (value) => FlLine(
+                                color: AppColors.slate100,
+                                strokeWidth: 1,
                               ),
                             ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 30,
-                                getTitlesWidget: (value, meta) {
-                                  return Text(
-                                    value.toInt().toString(),
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.slate400,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            borderData: FlBorderData(show: false),
+                            barGroups: [0, 1, 2, 3, 4].map((index) {
+                              final dayData = weeklyData.firstWhere(
+                                (d) => d['day'] == index + 1,
+                                orElse: () => {'presences': 0, 'retards': 0},
+                              );
+                              return _makeGroupData(
+                                index,
+                                (dayData['presences'] as num).toDouble(),
+                                (dayData['retards'] as num).toDouble(),
+                              );
+                            }).toList(),
                           ),
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: 10,
-                            getDrawingHorizontalLine: (value) => FlLine(
-                              color: AppColors.slate100,
-                              strokeWidth: 1,
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          barGroups: [
-                            _makeGroupData(0, 45, 4),
-                            _makeGroupData(1, 48, 2),
-                            _makeGroupData(2, 42, 8),
-                            _makeGroupData(3, 46, 3),
-                            _makeGroupData(4, 44, 5),
-                          ],
                         ),
                       ),
+                    ),
+                    loading: () => const SizedBox(
+                      height: 260,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.violet700),
+                      ),
+                    ),
+                    error: (_, __) => const SizedBox(
+                      height: 260,
+                      child: Center(child: Text('Erreur')),
                     ),
                   ),
                   // Legend
@@ -268,7 +276,7 @@ class AdminDashboard extends ConsumerWidget {
                       children: [
                         _legendItem(AppColors.primaryBlack, 'Présences'),
                         const SizedBox(width: 24),
-                        _legendItem(AppColors.violet500, 'Retards'),
+                        _legendItem(AppColors.violet700, 'Retards'),
                       ],
                     ),
                   ),
@@ -282,8 +290,8 @@ class AdminDashboard extends ConsumerWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.slate200),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.slate200, width: 0.5),
               ),
               child: Column(
                 children: [
@@ -301,152 +309,119 @@ class AdminDashboard extends ConsumerWidget {
                     ),
                   ),
                   const Divider(height: 0),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Sanction
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.rose100.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: const Border(
-                              left: BorderSide(color: AppColors.rose500, width: 4),
-                            ),
+                  activeSanctionsAsync.when(
+                    data: (sanctions) {
+                      if (sanctions.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(30),
+                          child: Text(
+                            'Aucune alerte disciplinaire active.',
+                            style: TextStyle(color: AppColors.slate400, fontStyle: FontStyle.italic),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'SANCTION AUTOMATIQUE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                  color: AppColors.rose700,
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            ...sanctions.take(3).map((s) {
+                              final isSanction = s.typeSanction != 'avertissement' && s.typeSanction != 'rappel_verbal';
+                              final color = isSanction ? AppColors.rose500 : AppColors.amber500;
+                              final bgColor = isSanction ? AppColors.rose100 : AppColors.amber100;
+                              final textLight = isSanction ? AppColors.rose700 : AppColors.amber700;
+                              
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: bgColor.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border(left: BorderSide(color: color, width: 4)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isSanction ? 'SANCTION DISCIPLINAIRE' : 'AVERTISSEMENT',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.5,
+                                        color: textLight,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${s.employeeName ?? "Employé inconnu"} (${s.motif})',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: textLight,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      onPressed: () {},
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: color,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        textStyle: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      child: Text(isSanction ? 'DÉTAILS SANCTION' : 'ENVOYER NOTIF'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            if (sanctions.length > 3)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.slate50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.slate100),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'AUTRES ALERTES',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1.5,
+                                        color: AppColors.slate500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${sanctions.length - 3} employés sous surveillance.',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.slate700,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Kevin Durand (>5 retards)',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.rose700,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.rose500,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                child: const Text('GÉNÉRER COURRIER'),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-
-                        // Warning
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.amber100.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: const Border(
-                              left: BorderSide(color: AppColors.amber500, width: 4),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'AVERTISSEMENT',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                  color: AppColors.amber700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Mélanie Rose (5 retards)',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.amber700,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.amber500,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                child: const Text('ENVOYER NOTIF'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Next step
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.slate50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.slate100),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'PROCHAINE ÉTAPE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                  color: AppColors.slate500,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                '3 employés sous surveillance active',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.slate700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      );
+                    },
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(30),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.violet700)),
+                    ),
+                    error: (_, __) => const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('Erreur de chargement'),
                     ),
                   ),
                 ],
@@ -455,33 +430,14 @@ class AdminDashboard extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // ─── Absence Validation ───
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'DEMANDES EN ATTENTE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: AppColors.slate800,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slate900,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    textStyle: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-              ],
+            const Text(
+              'DEMANDES EN ATTENTE',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: AppColors.slate800,
+              ),
             ),
             const SizedBox(height: 14),
             allAbsencesAsync.when(
@@ -524,7 +480,7 @@ class AdminDashboard extends ConsumerWidget {
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(30),
-                  child: CircularProgressIndicator(color: AppColors.primaryBlack),
+                  child: CircularProgressIndicator(color: AppColors.violet700),
                 ),
               ),
               error: (_, __) => const Text('Erreur'),
@@ -548,7 +504,7 @@ class AdminDashboard extends ConsumerWidget {
         ),
         BarChartRodData(
           toY: retards,
-          color: AppColors.violet500,
+          color: AppColors.violet700,
           width: 18,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
         ),

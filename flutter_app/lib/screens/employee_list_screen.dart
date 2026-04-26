@@ -170,10 +170,10 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.slate900 : Colors.white,
+          color: isSelected ? AppColors.violet700 : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.slate900 : AppColors.slate200,
+            color: isSelected ? AppColors.violet700 : AppColors.slate200,
           ),
         ),
         child: Text(
@@ -203,8 +203,8 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.slate200),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.slate200, width: 0.5),
           boxShadow: [
             BoxShadow(
               color: AppColors.slate200.withValues(alpha: 0.2),
@@ -220,7 +220,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: emp.isAdmin ? AppColors.primaryBlack : AppColors.slate100,
+                color: emp.isAdmin ? AppColors.violet700 : AppColors.slate100,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,

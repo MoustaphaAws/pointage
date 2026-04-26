@@ -283,8 +283,8 @@ class _AbsenceFormScreenState extends ConsumerState<AbsenceFormScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.violet500.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.violet500.withOpacity(0.3), width: 0.5),
                   ),
                   child: Row(
                     children: [
@@ -374,7 +374,7 @@ class _AbsenceFormScreenState extends ConsumerState<AbsenceFormScreen> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlack,
+                    backgroundColor: AppColors.violet700,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),

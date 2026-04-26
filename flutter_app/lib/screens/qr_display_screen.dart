@@ -215,9 +215,9 @@ class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryBlack,
+      backgroundColor: AppColors.violet700,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryBlack,
+        backgroundColor: AppColors.violet700,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -320,13 +320,13 @@ class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen>
                                       size: 240,
                                       eyeStyle: const QrEyeStyle(
                                         eyeShape: QrEyeShape.square,
-                                        color: AppColors.primaryBlack,
+                                        color: AppColors.violet700,
                                       ),
                                       dataModuleStyle:
                                           const QrDataModuleStyle(
                                         dataModuleShape:
                                             QrDataModuleShape.square,
-                                        color: AppColors.primaryBlack,
+                                        color: AppColors.violet700,
                                       ),
                                     ),
                                     const SizedBox(height: 16),

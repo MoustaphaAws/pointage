@@ -130,5 +130,10 @@ final authTokenProvider = Provider<String?>((ref) {
 final apiClientProvider = Provider<ApiClient?>((ref) {
   final token = ref.watch(authTokenProvider);
   if (token == null) return null;
-  return ApiClient(token: token);
+  return ApiClient(
+    token: token,
+    onUnauthorized: () {
+      ref.read(authProvider.notifier).logout();
+    },
+  );
 });

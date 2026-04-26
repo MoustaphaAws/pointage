@@ -222,7 +222,7 @@ class AlertesDisciplinairesScreen extends ConsumerWidget {
                       ? null
                       : () => Navigator.pop(ctx, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlack,
+                    backgroundColor: AppColors.violet700,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: AppColors.slate200,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -280,10 +280,10 @@ class AlertesDisciplinairesScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryBlack : Colors.white,
+          color: isSelected ? AppColors.violet700 : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primaryBlack : AppColors.slate200,
+            color: isSelected ? AppColors.violet700 : AppColors.slate200,
           ),
         ),
         child: Text(
@@ -363,8 +363,8 @@ class _AlerteCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: severity.color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
         boxShadow: [
           BoxShadow(
             color: severity.color.withValues(alpha: 0.08),
@@ -457,7 +457,7 @@ class _AlerteCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlack,
+                    color: AppColors.violet700,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Text(
@@ -524,8 +524,8 @@ class _TraiteeCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
       ),
       child: Row(
         children: [

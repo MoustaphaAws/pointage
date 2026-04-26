@@ -2,37 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Primary palette — noir/violet premium
-  static const Color primaryBlack = Color(0xFF0F0F0F);
-  static const Color violet600 = Color(0xFF7C3AED);
-  static const Color violet700 = Color(0xFF6D28D9);
-  static const Color violet500 = Color(0xFF8B5CF6);
-  static const Color violet400 = Color(0xFFA78BFA);
-  static const Color violet200 = Color(0xFFDDD6FE);
-  static const Color violet100 = Color(0xFFEDE9FE);
-  static const Color violet50 = Color(0xFFF5F3FF);
+  // Primary palette — Appliqué au nouveau design (noms conservés pour compatibilité temporelle)
+  static const Color primaryBlack = Color(0xFF191B23);
+  static const Color violet600 = Color(0xFF0052CC);
+  static const Color violet700 = Color(0xFF003D9B);
+  static const Color violet500 = Color(0xFF0052CC);
+  static const Color violet400 = Color(0xFF003D9B);
+  static const Color violet200 = Color(0xFFBBD1FF);
+  static const Color violet100 = Color(0xFFE5EEFF);
+  static const Color violet50 = Color(0xFFF3F3FD);
 
   // Neutrals
-  static const Color slate50 = Color(0xFFF8FAFC);
+  static const Color slate50 = Color(0xFFFAF8FF);
   static const Color slate100 = Color(0xFFF1F5F9);
-  static const Color slate200 = Color(0xFFE2E8F0);
+  static const Color slate200 = Color(0xFFC3C6D6);
   static const Color slate300 = Color(0xFFCBD5E1);
   static const Color slate400 = Color(0xFF94A3B8);
-  static const Color slate500 = Color(0xFF64748B);
+  static const Color slate500 = Color(0xFF737685);
   static const Color slate600 = Color(0xFF475569);
   static const Color slate700 = Color(0xFF334155);
-  static const Color slate800 = Color(0xFF1E293B);
-  static const Color slate900 = Color(0xFF0F172A);
+  static const Color slate800 = Color(0xFF191B23);
+  static const Color slate900 = Color(0xFF191B23);
 
   // Semantics
-  static const Color emerald500 = Color(0xFF10B981);
-  static const Color emerald100 = Color(0xFFD1FAE5);
+  static const Color emerald500 = Color(0xFF15803D);
+  static const Color emerald100 = Color(0xFFDCFCE7);
   static const Color emerald700 = Color(0xFF047857);
-  static const Color rose500 = Color(0xFFF43F5E);
-  static const Color rose100 = Color(0xFFFFE4E6);
-  static const Color rose700 = Color(0xFFBE123C);
-  static const Color amber500 = Color(0xFFF59E0B);
-  static const Color amber100 = Color(0xFFFEF3C7);
+  static const Color rose500 = Color(0xFFBA1A1A);
+  static const Color rose100 = Color(0xFFFFDAD6);
+  static const Color rose700 = Color(0xFFBA1A1A);
+  static const Color amber500 = Color(0xFFB7791F);
+  static const Color amber100 = Color(0xFFFFF3D1);
   static const Color amber700 = Color(0xFFB45309);
   static const Color sky600 = Color(0xFF0284C7);
 }
@@ -42,7 +42,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.slate50,
+      scaffoldBackgroundColor: const Color(0xFFFAF8FF),
       colorScheme: const ColorScheme.light(
         primary: AppColors.violet600,
         onPrimary: Colors.white,
@@ -141,7 +141,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryBlack,
+          backgroundColor: AppColors.violet700,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -183,9 +183,9 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.primaryBlack,
-        selectedItemColor: AppColors.violet500,
-        unselectedItemColor: AppColors.slate500,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.violet700,
+        unselectedItemColor: AppColors.slate400,
         type: BottomNavigationBarType.fixed,
         elevation: 20,
       ),

@@ -150,8 +150,8 @@ class _AbsenceRequestSheetState extends ConsumerState<AbsenceRequestSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       color: AppColors.slate50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.slate200),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.slate200, width: 0.5),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -196,8 +196,8 @@ class _AbsenceRequestSheetState extends ConsumerState<AbsenceRequestSheet> {
                       fillColor: AppColors.slate50,
                       filled: true,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.slate200),
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: const BorderSide(color: AppColors.slate200, width: 0.5),
                       ),
                     ),
                   ),
@@ -210,7 +210,7 @@ class _AbsenceRequestSheetState extends ConsumerState<AbsenceRequestSheet> {
                       onPressed: _isLoading ? null : _submitRequest,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
-                        backgroundColor: AppColors.primaryBlack,
+                        backgroundColor: AppColors.violet700,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

@@ -34,110 +34,49 @@ class _MainShellState extends ConsumerState<MainShell> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 1,
-        title: RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-            children: [
-              TextSpan(
-                text: 'Supervision ',
-                style: TextStyle(color: AppColors.slate900),
+        leadingWidth: 160,
+        leading: Row(
+          children: <Widget>[
+            const SizedBox(width: 16),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.8,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Digital',
+                        style: TextStyle(color: AppColors.violet700),
+                      ),
+                      TextSpan(
+                        text: 'Afrika',
+                        style: TextStyle(color: AppColors.slate900),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              TextSpan(
-                text: 'RH',
-                style: TextStyle(color: AppColors.violet600),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
         actions: [
-          // Notification bell
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: AppColors.slate400,
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.rose500,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-          // User info
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      user?.fullName ?? '',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.slate900,
-                      ),
-                    ),
-                    Text(
-                      user?.email ?? '',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.slate400,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlack,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.violet500.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    user?.initials ?? '?',
-                    style: const TextStyle(
-                      color: AppColors.violet400,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  onPressed: () => ref.read(authProvider.notifier).logout(),
-                  icon: const Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.slate400,
-                    size: 20,
-                  ),
-                  tooltip: 'Déconnexion',
-                ),
-              ],
+          const Icon(Icons.search, color: AppColors.slate500),
+          const SizedBox(width: 12),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.violet700,
+            child: Text(
+              user?.initials ?? '?',
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),
+          const SizedBox(width: 16),
         ],
       ),
       body: IndexedStack(
@@ -146,82 +85,53 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: AppColors.primaryBlack,
-          border: Border(
-            top: BorderSide(
-              color: Color(0xFF1A1030),
-              width: 1,
-            ),
-          ),
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.slate200, width: 0.5)),
         ),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(tabs.length, (i) {
-                final tab = tabs[i];
-                final isActive = _currentIndex == i;
-                return _buildNavItem(
-                  icon: tab.icon,
-                  label: tab.label,
-                  isActive: isActive,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(tabs.length, (i) {
+              final tab = tabs[i];
+              final isActive = _currentIndex == i;
+              return Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () => setState(() => _currentIndex = i),
-                );
-              }),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.violet600
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: AppColors.violet600.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.violet700.withValues(alpha: 0.08) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          tab.icon,
+                          size: 24,
+                          color: isActive ? AppColors.violet700 : AppColors.slate500.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            tab.label,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isActive ? AppColors.violet700 : AppColors.slate500.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ]
-              : [],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isActive ? Colors.white : AppColors.slate500,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-                color: isActive ? Colors.white : AppColors.slate500,
-              ),
-            ),
-          ],
+                ),
+              );
+            }),
+          ),
         ),
       ),
     );

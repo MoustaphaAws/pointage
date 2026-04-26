@@ -104,6 +104,18 @@ final globalStatsProvider = FutureProvider<GlobalStats?>((ref) async {
   }
 });
 
+// ─── Graphique hebdomadaire ───
+final weeklyPointagesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  if (api == null) return [];
+  try {
+    final response = await api.getWeeklyPointages();
+    return response.data as List<dynamic>;
+  } catch (e) {
+    return [];
+  }
+});
+
 // ─── Toutes les absences ───
 final allAbsencesProvider = FutureProvider<List<Absence>>((ref) async {
   final api = ref.watch(apiClientProvider);

@@ -293,7 +293,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlack,
+                    backgroundColor: AppColors.violet700,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),

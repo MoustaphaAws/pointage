@@ -60,7 +60,7 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
               unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               indicator: BoxDecoration(
-                color: AppColors.primaryBlack,
+                color: AppColors.violet700,
                 borderRadius: BorderRadius.circular(10),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
@@ -336,8 +336,8 @@ class _PendingAbsenceCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.amber500.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
         boxShadow: [
           BoxShadow(
             color: AppColors.slate200.withValues(alpha: 0.3),
@@ -550,8 +550,8 @@ class _TreatedAbsenceCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.slate200),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.slate200, width: 0.5),
       ),
       child: Row(
         children: [

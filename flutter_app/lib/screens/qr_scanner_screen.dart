@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
+import 'package:dio/dio.dart';
 
 class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
@@ -82,30 +83,26 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
         // Fermer automatiquement après 2.5s
         await Future.delayed(const Duration(milliseconds: 2500));
         if (mounted) Navigator.pop(context, true);
-      } else {
-        setState(() {
-          _isSuccess = false;
-          _resultMessage = data['error'] ?? 'QR Code invalide';
-          _isValidating = false;
-        });
-        // Permettre de re-scanner après 2s
-        await Future.delayed(const Duration(seconds: 2));
+      }
+    } on Exception catch (e) {
+      String errorMessage = 'Erreur de connexion';
+      if (e is DioException && e.response?.data != null) {
+        errorMessage = e.response!.data['message'] ?? 'QR Code invalide';
+      }
+
+      setState(() {
+        _isSuccess = false;
+        _resultMessage = errorMessage;
+        _isValidating = false;
+      });
+      // Permettre de re-scanner après 2s
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) {
         setState(() {
           _hasScanned = false;
           _resultMessage = null;
         });
       }
-    } catch (e) {
-      setState(() {
-        _isSuccess = false;
-        _resultMessage = 'Erreur de connexion';
-        _isValidating = false;
-      });
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {
-        _hasScanned = false;
-        _resultMessage = null;
-      });
     }
   }
 
@@ -234,7 +231,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
                   // Flash toggle
                   _buildCircleBtn(
                     icon: Icons.flash_on_rounded,
-                    onTap: () => _scannerController?.toggleTorch(),
+                    onTap: () {
+                      try {
+                        _scannerController?.toggleTorch();
+                      } catch (_) {
+                        // Controller might not be ready
+                      }
+                    },
                   ),
                 ],
               ),
@@ -320,8 +323,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
               child: Stack(
                 children: [
                   Container(
-                    decoration:
-                        BoxDecoration(backgroundBlendMode: BlendMode.dstOut),
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      backgroundBlendMode: BlendMode.dstOut,
+                    ),
                   ),
                   Positioned(
                     left: left,
