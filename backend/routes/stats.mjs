@@ -64,7 +64,8 @@ router.get("/month", async (req, res, next) => {
 router.get("/global", requireAdmin, async (req, res, next) => {
   try {
     const { service } = req.query;
-    const serviceFilter = req.auth.role === "admin" ? req.auth.serviceId : service;
+    // All admins see global stats, optional service filter
+    const serviceFilter = service || null;
 
     let empSql = "SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee' AND actif = true";
     let empParams = [];
@@ -133,7 +134,8 @@ router.get("/weekly-pointages", requireAdmin, async (req, res, next) => {
   console.log("📊 Requête stats hebdo reçue pour service:", req.query.service || "Tous");
   try {
     const { service } = req.query;
-    const serviceFilter = req.auth.role === "admin" ? req.auth.serviceId : service;
+    // All admins see all services, optional filter
+    const serviceFilter = service || null;
 
     let sql = `
       SELECT 

@@ -24,8 +24,9 @@ router.get("/pointages", requireAdmin, async (req, res, next) => {
                WHERE p.date >= $1 AND p.date <= $2`;
     const params = [startDate, endDate];
 
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
+    // Optional service filter (no longer restricted by admin scope)
+    if (req.query.service) {
+      params.push(req.query.service);
       sql += ` AND e.service_id = $${params.length}`;
     }
     sql += " ORDER BY p.date, e.last_name";
@@ -93,8 +94,9 @@ router.get("/absences", requireAdmin, async (req, res, next) => {
       params.push(endDate);
       sql += ` AND a.date_debut <= $${params.length}`;
     }
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
+    // Optional service filter (no longer restricted by admin scope)
+    if (req.query.service) {
+      params.push(req.query.service);
       sql += ` AND e.service_id = $${params.length}`;
     }
     sql += " ORDER BY a.date_debut DESC";
@@ -137,8 +139,9 @@ router.get("/paie", requireAdmin, async (req, res, next) => {
                WHERE e.role = 'employee' AND e.actif = true`;
     const params = [startDate, endDate];
 
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
+    // Optional service filter (no longer restricted by admin scope)
+    if (req.query.service) {
+      params.push(req.query.service);
       sql += ` AND e.service_id = $${params.length}`;
     }
     sql += " GROUP BY e.id, s.nom ORDER BY e.last_name";

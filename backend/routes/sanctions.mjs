@@ -1,8 +1,33 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
 import { requireAdmin } from "../middleware/auth.mjs";
+import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
+
+async function assertAdminScopeByEmployee(req, employeeId) {
+  // All admins can view all employees' sanctions
+  return true;
+}
+
+async function assertAdminScopeBySanction(req, sanctionId) {
+  // All admins can manage all sanctions
+  return true;
+}
+
+async function logDenied(req, details) {
+  const actor = await getActor(req);
+  if (!actor) return;
+  await writeAuditLog({
+    userId: actor.id,
+    userName: actor.name,
+    role: actor.role,
+    action: "ACCESS_DENIED",
+    target: "SANCTION",
+    details,
+    ip: req.ip,
+  });
+}
 
 // ─── GET /api/sanctions/me ─── (Employé)
 router.get("/me", async (req, res, next) => {
@@ -31,10 +56,7 @@ router.get("/all", requireAdmin, async (req, res, next) => {
                WHERE 1=1`;
     const params = [];
 
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
-      sql += ` AND e.service_id = $${params.length}`;
-    }
+    // All admins see all sanctions (no service restriction)
     if (service) { params.push(service); sql += ` AND e.service_id = $${params.length}`; }
     sql += " ORDER BY s.created_at DESC";
 
@@ -48,6 +70,11 @@ router.get("/all", requireAdmin, async (req, res, next) => {
 // ─── GET /api/sanctions/employee/:id ─── (Admin)
 router.get("/employee/:id", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeByEmployee(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, `Consultation sanctions hors périmètre employé ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       `SELECT s.*, e.first_name, e.last_name
        FROM sanctions s
@@ -65,6 +92,11 @@ router.get("/employee/:id", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/sanctions/:id/traiter ─── (Admin)
 router.put("/:id/traiter", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeBySanction(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, `Traitement sanction hors périmètre ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const { commentaire } = req.body || {};
     const result = await query(
       `UPDATE sanctions SET statut = 'traite', traite_par = $1, date_traitement = NOW(), commentaire_admin = $2
@@ -76,6 +108,18 @@ router.put("/:id/traiter", requireAdmin, async (req, res, next) => {
       return res.status(400).json({ message: "Sanction introuvable ou déjà traitée." });
     }
     res.json({ message: "Sanction traitée." });
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "HANDLE_SANCTION",
+        target: req.params.id,
+        details: `Sanction traitée (${commentaire || "sans commentaire"})`,
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }

@@ -24,12 +24,22 @@ router.post("/login", async (req, res, next) => {
     );
 
     if (!result.rowCount) {
+      await query(
+        `INSERT INTO audit_logs (user_id, user_role, action, entite, entite_id, details, ip_address)
+         VALUES (NULL, NULL, 'LOGIN_FAILED', 'AUTH', NULL, $1, $2)`,
+        [JSON.stringify({ email: String(email).toLowerCase(), reason: "user_not_found_or_inactive" }), req.ip || null]
+      );
       return res.status(401).json({ message: "Identifiants invalides." });
     }
 
     const user = result.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
+      await query(
+        `INSERT INTO audit_logs (user_id, user_role, action, entite, entite_id, details, ip_address)
+         VALUES ($1, $2::role_enum, 'LOGIN_FAILED', 'AUTH', NULL, $3, $4)`,
+        [user.id, user.role, JSON.stringify({ email: user.email, reason: "invalid_password" }), req.ip || null]
+      );
       return res.status(401).json({ message: "Identifiants invalides." });
     }
 

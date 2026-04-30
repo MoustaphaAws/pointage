@@ -5,6 +5,11 @@ import { randomUUID } from "crypto";
 
 const router = Router();
 
+async function assertAdminScopeByEmployee(req, employeeId) {
+  // All admins can view all employees' pointages
+  return true;
+}
+
 // ════════════════════════════════════════════
 // EMPLOYÉ — Mes pointages
 // ════════════════════════════════════════════
@@ -77,13 +82,9 @@ router.get("/all", requireAdmin, async (req, res, next) => {
                WHERE 1=1`;
     const params = [];
 
+    // All admins see all pointages (no service restriction)
     if (service) {
       params.push(service);
-      sql += ` AND e.service_id = $${params.length}`;
-    }
-    // Filtrage par périmètre admin (son service) sauf superadmin
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
       sql += ` AND e.service_id = $${params.length}`;
     }
     if (start) { params.push(start); sql += ` AND p.date >= $${params.length}`; }
@@ -111,10 +112,7 @@ router.get("/live", requireAdmin, async (req, res, next) => {
                WHERE e.actif = true AND e.role = 'employee'`;
     const params = [];
 
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
-      sql += ` AND e.service_id = $${params.length}`;
-    }
+    // All admins see all employees' live pointages
     sql += " ORDER BY e.last_name";
 
     const result = await query(sql, params);
@@ -135,6 +133,10 @@ router.get("/live", requireAdmin, async (req, res, next) => {
 // ─── GET /api/pointages/employee/:id ───
 router.get("/employee/:id", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeByEmployee(req, req.params.id);
+    if (!inScope) {
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const { start, end } = req.query;
     let sql = `SELECT id, date, heure_arrivee, heure_depart, statut, retard_minutes,
                       heures_sup_minutes, duree_travail_minutes

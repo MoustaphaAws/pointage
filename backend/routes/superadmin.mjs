@@ -497,13 +497,57 @@ router.get("/stats/global", async (_req, res, next) => {
        JOIN employes e ON e.id = p.employe_id
        WHERE p.date = CURRENT_DATE AND p.heure_arrivee IS NOT NULL`
     );
-    const absenteeismRate = Number(((1 - presentToday.rows[0].total / total) * 100).toFixed(1));
+
+    // Calcul recommandé production: absentéisme mensuel réel (jours-homme ouvrés),
+    // au lieu d'un simple snapshot "présents aujourd'hui".
+    const activeEmployeesResult = await query(
+      `SELECT COUNT(*)::int AS total
+       FROM employes
+       WHERE role = 'employee' AND actif = true`
+    );
+    const activeEmployees = activeEmployeesResult.rows[0].total;
+
+    const periodEnd = new Date() < new Date(endOfMonth) ? new Date().toISOString().split("T")[0] : endOfMonth;
+    const workingDaysResult = await query(
+      `WITH days AS (
+         SELECT d::date AS day
+         FROM generate_series($1::date, $2::date, INTERVAL '1 day') d
+       )
+       SELECT COUNT(*)::int AS total
+       FROM days
+       WHERE EXTRACT(ISODOW FROM day) < 6
+         AND NOT EXISTS (
+           SELECT 1
+           FROM jours_feries jf
+           WHERE (jf.recurrent = false AND jf.date = day)
+              OR (jf.recurrent = true AND to_char(jf.date, 'MM-DD') = to_char(day, 'MM-DD'))
+         )`,
+      [startOfMonth, periodEnd]
+    );
+    const workingDays = workingDaysResult.rows[0].total;
+    const expectedEmployeeDays = activeEmployees * workingDays;
+
+    const absencesResult = await query(
+      `SELECT COUNT(*)::int AS total
+       FROM pointages p
+       JOIN employes e ON e.id = p.employe_id
+       WHERE p.date >= $1
+         AND p.date <= $2
+         AND p.statut = 'absent'
+         AND e.role = 'employee'
+         AND e.actif = true`,
+      [startOfMonth, periodEnd]
+    );
+    const absentEmployeeDays = absencesResult.rows[0].total;
+    const absenteeismRate = expectedEmployeeDays > 0
+      ? Number(((absentEmployeeDays / expectedEmployeeDays) * 100).toFixed(1))
+      : 0;
 
     res.json({
       employees: employees.rows[0].total,
       admins: admins.rows[0].total,
       activeUsers: activeUsers.rows[0].total,
-      absenteeismRate: Math.max(0, absenteeismRate),
+      absenteeismRate: Math.max(0, Math.min(100, absenteeismRate)),
       pendingAbsences: pendingAbsences.rows[0].total,
       lateArrivalsCount: lateToday.rows[0].total,
       monthlyOvertimeHours: Math.floor(overtime.rows[0].total / 60),

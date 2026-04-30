@@ -1,8 +1,33 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
 import { requireAdmin } from "../middleware/auth.mjs";
+import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
+
+async function assertAdminScopeByAbsence(req, absenceId) {
+  // All admins can manage all absences
+  return true;
+}
+
+async function assertAdminScopeByEmployee(req, employeeId) {
+  // All admins can view all employees' absences
+  return true;
+}
+
+async function logDenied(req, details) {
+  const actor = await getActor(req);
+  if (!actor) return;
+  await writeAuditLog({
+    userId: actor.id,
+    userName: actor.name,
+    role: actor.role,
+    action: "ACCESS_DENIED",
+    target: "ABSENCE",
+    details,
+    ip: req.ip,
+  });
+}
 
 // ─── POST /api/absences ─── (Employé: déclarer)
 router.post("/", async (req, res, next) => {
@@ -89,11 +114,7 @@ router.get("/all", requireAdmin, async (req, res, next) => {
                WHERE 1=1`;
     const params = [];
 
-    // Périmètre admin
-    if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
-      sql += ` AND e.service_id = $${params.length}`;
-    }
+    // All admins see all absences (no service restriction)
     if (service) { params.push(service); sql += ` AND e.service_id = $${params.length}`; }
     if (status) { params.push(status); sql += ` AND a.statut = $${params.length}`; }
     sql += " ORDER BY a.created_at DESC";
@@ -108,6 +129,11 @@ router.get("/all", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/absences/:id/approve ─── (Admin)
 router.put("/:id/approve", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeByAbsence(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, `Validation hors périmètre absence ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       `UPDATE absences SET statut = 'approuvee', valide_par = $1, date_validation = NOW()
        WHERE id = $2 AND statut = 'en_attente'
@@ -126,6 +152,18 @@ router.put("/:id/approve", requireAdmin, async (req, res, next) => {
     );
 
     res.json({ message: "Absence approuvée." });
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "APPROVE_ABSENCE",
+        target: req.params.id,
+        details: "Absence approuvée",
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }
@@ -134,6 +172,11 @@ router.put("/:id/approve", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/absences/:id/reject ─── (Admin)
 router.put("/:id/reject", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeByAbsence(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, `Rejet hors périmètre absence ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const { motifRejet } = req.body || {};
     if (!motifRejet) {
       return res.status(400).json({ message: "Motif de rejet requis." });
@@ -156,6 +199,18 @@ router.put("/:id/reject", requireAdmin, async (req, res, next) => {
     );
 
     res.json({ message: "Absence rejetée." });
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "REJECT_ABSENCE",
+        target: req.params.id,
+        details: `Absence rejetée (${motifRejet})`,
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }
@@ -164,6 +219,11 @@ router.put("/:id/reject", requireAdmin, async (req, res, next) => {
 // ─── GET /api/absences/employee/:id ─── (Admin)
 router.get("/employee/:id", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScopeByEmployee(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, `Consultation absences hors périmètre employé ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url
        FROM absences a

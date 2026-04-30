@@ -2,24 +2,47 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { query } from "../db.mjs";
 import { requireAdmin } from "../middleware/auth.mjs";
+import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
 
-// ─── GET /api/employees ─── (Admin: liste filtrée)
+async function assertAdminScope(req, employeeId) {
+  // All admins and superadmins can view/manage all employees
+  return true;
+}
+
+async function logDenied(req, target, details) {
+  const actor = await getActor(req);
+  if (!actor) return;
+  await writeAuditLog({
+    userId: actor.id,
+    userName: actor.name,
+    role: actor.role,
+    action: "ACCESS_DENIED",
+    target,
+    details,
+    ip: req.ip,
+  });
+}
+
+// ─── GET /api/employees ─── (Admin: liste tous les employés, SuperAdmin: employés + admins)
 router.get("/", requireAdmin, async (req, res, next) => {
   try {
     const { service, status, search, contrat } = req.query;
     let sql = `SELECT e.*, s.nom AS service_name
                FROM employes e
                JOIN services s ON s.id = e.service_id
-               WHERE e.role = 'employee'`;
+               WHERE 1=1`;
     const params = [];
 
-    // Périmètre admin (son service uniquement)
+    // Admins voient tous les employés (role='employee') de tous les services
+    // Superadmins voient les employés + les admins
     if (req.auth.role === "admin") {
-      params.push(req.auth.serviceId);
-      sql += ` AND e.service_id = $${params.length}`;
+      sql += ` AND e.role = 'employee'`;
+    } else if (req.auth.role === "superadmin") {
+      sql += ` AND e.role IN ('employee', 'admin')`;
     }
+
     if (service) { params.push(service); sql += ` AND e.service_id = $${params.length}`; }
     if (status) {
       const isActive = status === "actif";
@@ -43,6 +66,11 @@ router.get("/", requireAdmin, async (req, res, next) => {
 // ─── GET /api/employees/:id ─── (Admin: profil complet)
 router.get("/:id", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScope(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, "EMPLOYEE", `Consultation hors périmètre: ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       `SELECT e.*, s.nom AS service_name
        FROM employes e
@@ -63,6 +91,10 @@ router.get("/:id", requireAdmin, async (req, res, next) => {
 router.post("/", requireAdmin, async (req, res, next) => {
   try {
     const { firstName, lastName, email, phone, serviceId, poste, typeContrat, dateEmbauche, dateFinContrat, heureDebut, heureFin, uidBadge } = req.body || {};
+    if (req.auth.role === "admin" && serviceId !== req.auth.serviceId) {
+      await logDenied(req, "EMPLOYEE", `Création hors périmètre demandé (${serviceId})`);
+      return res.status(403).json({ message: "Accès interdit : création hors périmètre." });
+    }
     if (!firstName || !lastName || !email || !serviceId || !poste) {
       return res.status(400).json({ message: "Champs obligatoires manquants (firstName, lastName, email, serviceId, poste)." });
     }
@@ -90,6 +122,7 @@ router.post("/", requireAdmin, async (req, res, next) => {
     );
 
     const emp = result.rows[0];
+    const actor = await getActor(req);
 
     // Notification de bienvenue
     await query(
@@ -105,6 +138,17 @@ router.post("/", requireAdmin, async (req, res, next) => {
       ...formatEmployee({ ...emp, service_name: srvResult.rows[0]?.nom }),
       temporaryPassword: defaultPassword,
     });
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "CREATE_EMPLOYEE",
+        target: `${emp.first_name} ${emp.last_name}`,
+        details: `Création employé ${emp.id}`,
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     if (err.code === "23505") {
       return res.status(409).json({ message: "Un employé avec cet email ou ce badge existe déjà." });
@@ -116,7 +160,17 @@ router.post("/", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/employees/:id ─── (Admin: modifier)
 router.put("/:id", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScope(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, "EMPLOYEE", `Modification hors périmètre: ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
+
     const { firstName, lastName, phone, serviceId, poste, typeContrat, heureDebut, heureFin, dateFinContrat } = req.body || {};
+    if (req.auth.role === "admin" && serviceId && serviceId !== req.auth.serviceId) {
+      await logDenied(req, "EMPLOYEE", `Transfert hors périmètre: ${req.params.id} -> ${serviceId}`);
+      return res.status(403).json({ message: "Accès interdit : transfert hors périmètre." });
+    }
     const result = await query(
       `UPDATE employes SET
          first_name = COALESCE($1, first_name),
@@ -143,6 +197,18 @@ router.put("/:id", requireAdmin, async (req, res, next) => {
     }
     const srvResult = await query("SELECT nom FROM services WHERE id = $1", [result.rows[0].service_id]);
     res.json(formatEmployee({ ...result.rows[0], service_name: srvResult.rows[0]?.nom }));
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "UPDATE_EMPLOYEE",
+        target: `${result.rows[0].first_name} ${result.rows[0].last_name}`,
+        details: `Mise à jour employé ${result.rows[0].id}`,
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }
@@ -151,12 +217,29 @@ router.put("/:id", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/employees/:id/deactivate ───
 router.put("/:id/deactivate", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScope(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, "EMPLOYEE", `Désactivation hors périmètre: ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       "UPDATE employes SET actif = false, badge_actif = false WHERE id = $1 RETURNING id",
       [req.params.id]
     );
     if (!result.rowCount) return res.status(404).json({ message: "Employé introuvable." });
     res.json({ message: "Employé désactivé." });
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "DEACTIVATE_EMPLOYEE",
+        target: req.params.id,
+        details: "Désactivation employé",
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }
@@ -165,12 +248,29 @@ router.put("/:id/deactivate", requireAdmin, async (req, res, next) => {
 // ─── PUT /api/employees/:id/activate ───
 router.put("/:id/activate", requireAdmin, async (req, res, next) => {
   try {
+    const inScope = await assertAdminScope(req, req.params.id);
+    if (!inScope) {
+      await logDenied(req, "EMPLOYEE", `Réactivation hors périmètre: ${req.params.id}`);
+      return res.status(403).json({ message: "Accès interdit hors périmètre." });
+    }
     const result = await query(
       "UPDATE employes SET actif = true, badge_actif = true WHERE id = $1 RETURNING id",
       [req.params.id]
     );
     if (!result.rowCount) return res.status(404).json({ message: "Employé introuvable." });
     res.json({ message: "Employé réactivé." });
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "ACTIVATE_EMPLOYEE",
+        target: req.params.id,
+        details: "Réactivation employé",
+        ip: req.ip,
+      });
+    }
   } catch (err) {
     next(err);
   }
