@@ -35,6 +35,13 @@ class AppColors {
   static const Color amber100 = Color(0xFFFFF3D1);
   static const Color amber700 = Color(0xFFB45309);
   static const Color sky600 = Color(0xFF0284C7);
+
+  // Dark Mode Palette
+  static const Color darkBg = Color(0xFF0F172A);
+  static const Color darkSurface = Color(0xFF1E293B);
+  static const Color darkBorder = Color(0xFF334155);
+  static const Color darkTextPrimary = Color(0xFFF8FAFC);
+  static const Color darkTextSecondary = Color(0xFF94A3B8);
 }
 
 class AppTheme {
@@ -191,6 +198,59 @@ class AppTheme {
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.slate100,
+        thickness: 1,
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.darkBg,
+      colorScheme: const ColorScheme.dark(
+        primary: AppColors.violet400,
+        onPrimary: Colors.white,
+        secondary: AppColors.violet200,
+        onSecondary: AppColors.darkBg,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
+        error: Color(0xFFFB7185),
+      ),
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.darkTextPrimary, letterSpacing: -1.5),
+        displayMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.darkTextPrimary, letterSpacing: -1.2),
+        headlineLarge: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.darkTextPrimary, letterSpacing: -0.8),
+        headlineMedium: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.darkTextPrimary),
+        titleLarge: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.darkTextPrimary),
+        titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkTextPrimary),
+        bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFFE2E8F0)),
+        bodyMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.darkTextSecondary),
+        labelLarge: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: AppColors.darkTextPrimary),
+        labelSmall: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: AppColors.darkTextSecondary),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.darkSurface,
+        foregroundColor: AppColors.darkTextPrimary,
+        elevation: 0,
+        titleTextStyle: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.darkTextPrimary),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.darkBorder),
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        selectedItemColor: AppColors.violet400,
+        unselectedItemColor: AppColors.darkTextSecondary,
+        type: BottomNavigationBarType.fixed,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.darkBorder,
         thickness: 1,
       ),
     );

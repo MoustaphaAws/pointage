@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
+import '../providers/theme_provider.dart';
+import 'login_screen.dart';
 import '../theme/app_theme.dart';
 
 class EmployeeProfileScreen extends ConsumerWidget {
@@ -299,25 +301,59 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
+class _SettingsSection extends ConsumerWidget {
   const _SettingsSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.slate200, width: 0.5),
+        side: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
       ),
-      child: const Column(
+      child: Column(
         children: <Widget>[
-          _SettingToggle(icon: Icons.notifications_outlined, label: 'Notifications Push', enabled: true),
-          Divider(height: 1, color: AppColors.slate200),
-          _SettingToggle(icon: Icons.dark_mode_outlined, label: 'Mode Sombre', enabled: false),
-          Divider(height: 1, color: AppColors.slate200),
-          _SettingLanguage(),
+          const _SettingToggle(icon: Icons.notifications_outlined, label: 'Notifications Push', enabled: true),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.dark_mode_outlined, color: Theme.of(context).iconTheme.color),
+            title: const Text('Mode Sombre', style: TextStyle(fontWeight: FontWeight.w700)),
+            trailing: Switch(
+              value: isDark,
+              onChanged: (val) {
+                ref.read(themeModeProvider.notifier).toggleTheme(val);
+              },
+              activeThumbColor: Colors.white,
+              activeTrackColor: AppColors.violet700,
+            ),
+          ),
+          const Divider(height: 1),
+          const _SettingLanguage(),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingLanguage extends StatelessWidget {
+  const _SettingLanguage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ListTile(
+      leading: Icon(Icons.language, color: AppColors.slate500),
+      title: Text('Langue', style: TextStyle(fontWeight: FontWeight.w700)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text('FRANÇAIS', style: TextStyle(fontSize: 11, color: AppColors.slate500, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+          SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: AppColors.slate500),
         ],
       ),
     );
@@ -334,32 +370,12 @@ class _SettingToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: AppColors.slate500),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryBlack)),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       trailing: Switch(
         value: enabled,
         onChanged: (_) {},
         activeThumbColor: Colors.white,
         activeTrackColor: AppColors.violet700,
-      ),
-    );
-  }
-}
-
-class _SettingLanguage extends StatelessWidget {
-  const _SettingLanguage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ListTile(
-      leading: Icon(Icons.language, color: AppColors.slate500),
-      title: Text('Langue', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryBlack)),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text('FRANÇAIS', style: TextStyle(fontSize: 11, color: AppColors.slate500, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
-          SizedBox(width: 4),
-          Icon(Icons.chevron_right, color: AppColors.slate500),
-        ],
       ),
     );
   }
@@ -371,8 +387,13 @@ class _LogoutButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FilledButton.icon(
-      onPressed: () {
-        ref.read(authProvider.notifier).logout();
+      onPressed: () async {
+        await ref.read(authProvider.notifier).logout();
+        if (!context.mounted) return;
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
       },
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.rose100,

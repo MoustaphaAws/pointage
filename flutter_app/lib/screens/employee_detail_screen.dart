@@ -288,7 +288,7 @@ class _PointagesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pointagesAsync = ref.watch(pointageHistoryProvider);
+    final pointagesAsync = ref.watch(employeePointagesProvider(employeeId));
 
     return pointagesAsync.when(
       data: (pointages) {
@@ -461,18 +461,17 @@ class _AbsencesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final absencesAsync = ref.watch(allAbsencesProvider);
+    final absencesAsync = ref.watch(employeeAbsencesProvider(employeeId));
 
     return absencesAsync.when(
       data: (absences) {
-        final filtered = absences.where((a) => a.employeeId == employeeId).toList();
-        if (filtered.isEmpty) return _emptyState('Aucune absence', Icons.event_busy_rounded);
+        if (absences.isEmpty) return _emptyState('Aucune absence', Icons.event_busy_rounded);
 
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: filtered.length,
+          itemCount: absences.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (_, i) => _AbsenceTile(absence: filtered[i]),
+          itemBuilder: (_, i) => _AbsenceTile(absence: absences[i]),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator(color: AppColors.violet500)),
@@ -580,18 +579,17 @@ class _SanctionsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sanctionsAsync = ref.watch(allSanctionsProvider);
+    final sanctionsAsync = ref.watch(employeeSanctionsProvider(employeeId));
 
     return sanctionsAsync.when(
       data: (sanctions) {
-        final filtered = sanctions.where((s) => s.employeeId == employeeId).toList();
-        if (filtered.isEmpty) return _emptyState('Aucune sanction', Icons.shield_rounded);
+        if (sanctions.isEmpty) return _emptyState('Aucune sanction', Icons.shield_rounded);
 
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: filtered.length,
+          itemCount: sanctions.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (_, i) => _SanctionTile(sanction: filtered[i]),
+          itemBuilder: (_, i) => _SanctionTile(sanction: sanctions[i]),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator(color: AppColors.violet500)),

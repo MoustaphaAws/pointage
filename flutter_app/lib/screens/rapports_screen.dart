@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../providers/auth_provider.dart';
+import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
 
 class RapportsScreen extends ConsumerStatefulWidget {
@@ -11,11 +14,31 @@ class RapportsScreen extends ConsumerStatefulWidget {
 
 class _RapportsScreenState extends ConsumerState<RapportsScreen> {
   String _selectedPeriod = 'Ce mois';
-  String? _selectedService;
-  bool _isExporting = false;
+  String? _selectedServiceId;
+  String _exportingType = ''; // '' = not exporting, 'Pointage_Excel' etc.
+
+  /// Convertir la période sélectionnée en paramètre "month" format YYYY-MM
+  String _getMonthParam() {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 'Mois dernier':
+        final prev = DateTime(now.year, now.month - 1, 1);
+        return '${prev.year}-${prev.month.toString().padLeft(2, '0')}';
+      case 'Ce trimestre':
+        // Début du trimestre courant
+        final qStart = ((now.month - 1) ~/ 3) * 3 + 1;
+        return '${now.year}-${qStart.toString().padLeft(2, '0')}';
+      case 'Cette année':
+        return '${now.year}-01';
+      default: // 'Ce mois'
+        return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final servicesAsync = ref.watch(servicesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.slate50,
       appBar: AppBar(
@@ -78,26 +101,30 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Service filter
+                  // Service filter (dynamic from API)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
                         _filterChip(
                           'Tous les services',
-                          isSelected: _selectedService == null,
-                          onTap: () => setState(() => _selectedService = null),
+                          isSelected: _selectedServiceId == null,
+                          onTap: () => setState(() => _selectedServiceId = null),
                         ),
                         const SizedBox(width: 8),
-                        ...['Développement', 'Ressources Humaines', 'Marketing', 'Commercial'].map(
-                          (s) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _filterChip(
-                              s,
-                              isSelected: _selectedService == s,
-                              onTap: () => setState(() => _selectedService = _selectedService == s ? null : s),
+                        ...servicesAsync.when(
+                          data: (services) => services.map(
+                            (s) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _filterChip(
+                                s.nom,
+                                isSelected: _selectedServiceId == s.id,
+                                onTap: () => setState(() => _selectedServiceId = _selectedServiceId == s.id ? null : s.id),
+                              ),
                             ),
                           ),
+                          loading: () => [const SizedBox.shrink()],
+                          error: (_, __) => [const SizedBox.shrink()],
                         ),
                       ],
                     ),
@@ -127,8 +154,8 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
               description: 'Détail des arrivées, départs, retards et heures supplémentaires de chaque employé.',
               icon: Icons.access_time_rounded,
               color: AppColors.violet600,
-              formats: const ['Excel', 'PDF'],
-              isExporting: _isExporting,
+              formats: const ['Excel', 'CSV'],
+              exportingType: _exportingType,
               onExport: (format) => _export('Pointage', format),
             ),
             const SizedBox(height: 12),
@@ -138,8 +165,8 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
               description: 'Synthèse des absences par type, statut de validation et justificatifs.',
               icon: Icons.event_busy_rounded,
               color: AppColors.amber500,
-              formats: const ['Excel', 'PDF'],
-              isExporting: _isExporting,
+              formats: const ['CSV'],
+              exportingType: _exportingType,
               onExport: (format) => _export('Absences', format),
             ),
             const SizedBox(height: 12),
@@ -149,8 +176,8 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
               description: 'Récapitulatif mensuel prêt pour la comptabilité : heures, retards, jours travaillés.',
               icon: Icons.payment_rounded,
               color: AppColors.emerald500,
-              formats: const ['Excel'],
-              isExporting: _isExporting,
+              formats: const ['CSV'],
+              exportingType: _exportingType,
               onExport: (format) => _export('Paie', format),
             ),
             const SizedBox(height: 12),
@@ -160,8 +187,8 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
               description: 'Historique des alertes, sanctions et avertissements par employé.',
               icon: Icons.gavel_rounded,
               color: AppColors.rose500,
-              formats: const ['PDF'],
-              isExporting: _isExporting,
+              formats: const ['CSV'],
+              exportingType: _exportingType,
               onExport: (format) => _export('Disciplinaire', format),
             ),
             const SizedBox(height: 24),
@@ -197,32 +224,109 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
   }
 
   Future<void> _export(String type, String format) async {
-    setState(() => _isExporting = true);
+    final exportKey = '${type}_$format';
+    setState(() => _exportingType = exportKey);
 
-    // Simulate export delay
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final api = ref.read(apiClientProvider);
+      if (api == null) {
+        _showError('Non connecté');
+        return;
+      }
 
-    setState(() => _isExporting = false);
+      final month = _getMonthParam();
+      Response response;
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Rapport $type ($format) exporté ✓',
+      switch (type) {
+        case 'Pointage':
+          response = await api.exportPointages(
+            month: month,
+            format: format.toLowerCase() == 'excel' ? 'excel' : 'csv',
+          );
+          break;
+        case 'Absences':
+          response = await api.exportAbsences(month: month);
+          break;
+        case 'Paie':
+          response = await api.exportPaie(month: month);
+          break;
+        case 'Disciplinaire':
+          response = await api.exportDisciplinaire();
+          break;
+        default:
+          _showError('Type de rapport inconnu');
+          return;
+      }
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          _showSuccess(type, format, response);
+        }
+      } else {
+        _showError('Erreur serveur (${response.statusCode})');
+      }
+    } catch (e) {
+      _showError('Erreur: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _exportingType = '');
+      }
+    }
+  }
+
+  void _showSuccess(String type, String format, Response response) {
+    // Determine data size for feedback
+    final dataLength = response.data is String 
+        ? (response.data as String).length 
+        : response.data is List<int> 
+            ? (response.data as List<int>).length 
+            : 0;
+    
+    final sizeKb = (dataLength / 1024).toStringAsFixed(1);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Rapport $type ($format) généré ✓ — ${sizeKb}KB',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-            ],
-          ),
-          backgroundColor: AppColors.emerald500,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ],
         ),
-      );
-    }
+        backgroundColor: AppColors.emerald500,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.rose500,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 }
 
@@ -235,7 +339,7 @@ class _ReportCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final List<String> formats;
-  final bool isExporting;
+  final String exportingType;
   final ValueChanged<String> onExport;
 
   const _ReportCard({
@@ -244,7 +348,7 @@ class _ReportCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.formats,
-    required this.isExporting,
+    required this.exportingType,
     required this.onExport,
   });
 
@@ -306,42 +410,57 @@ class _ReportCard extends StatelessWidget {
           // Export buttons
           Row(
             children: formats
-                .map((f) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: InkWell(
-                        onTap: isExporting ? null : () => onExport(f),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isExporting ? AppColors.slate100 : color,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
+                .map((f) {
+                  // Match on report type from title
+                  final isThisExporting = exportingType.endsWith('_$f') && exportingType.isNotEmpty;
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: InkWell(
+                      onTap: exportingType.isNotEmpty ? null : () => onExport(f),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: exportingType.isNotEmpty ? AppColors.slate100 : color,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isThisExporting)
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.slate400,
+                                ),
+                              )
+                            else
                               Icon(
                                 f == 'Excel'
                                     ? Icons.table_chart_rounded
-                                    : Icons.picture_as_pdf_rounded,
+                                    : Icons.description_rounded,
                                 size: 16,
-                                color: isExporting ? AppColors.slate400 : Colors.white,
+                                color: exportingType.isNotEmpty ? AppColors.slate400 : Colors.white,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                f.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                  color: isExporting ? AppColors.slate400 : Colors.white,
-                                ),
+                            const SizedBox(width: 6),
+                            Text(
+                              f.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                                color: exportingType.isNotEmpty ? AppColors.slate400 : Colors.white,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ))
+                    ),
+                  );
+                })
                 .toList(),
           ),
         ],

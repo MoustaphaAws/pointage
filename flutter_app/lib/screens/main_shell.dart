@@ -26,13 +26,15 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final isAdmin = user?.isAdmin ?? false;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final tabs = isAdmin ? _adminTabs : _employeeTabs;
 
     return Scaffold(
-      backgroundColor: AppColors.slate50,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         leadingWidth: 160,
         leading: Row(
@@ -43,20 +45,20 @@ class _MainShellState extends ConsumerState<MainShell> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.8,
                     ),
                     children: [
-                      TextSpan(
+                      const TextSpan(
                         text: 'Digital',
                         style: TextStyle(color: AppColors.violet700),
                       ),
                       TextSpan(
                         text: 'Afrika',
-                        style: TextStyle(color: AppColors.slate900),
+                        style: TextStyle(color: colorScheme.onSurface),
                       ),
                     ],
                   ),
@@ -68,7 +70,11 @@ class _MainShellState extends ConsumerState<MainShell> {
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.search, color: AppColors.slate500, size: 22),
+            icon: Icon(
+              Icons.search,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.slate500,
+              size: 22,
+            ),
           ),
           InkWell(
             onTap: () {
@@ -77,10 +83,10 @@ class _MainShellState extends ConsumerState<MainShell> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => Scaffold(
-                      backgroundColor: AppColors.slate50,
+                      backgroundColor: colorScheme.surface,
                       appBar: AppBar(
                         title: const Text('Mon Profil', style: TextStyle(fontWeight: FontWeight.w800)),
-                        backgroundColor: Colors.white,
+                        backgroundColor: colorScheme.surface,
                         elevation: 0,
                       ),
                       body: const EmployeeProfileScreen(),
@@ -112,9 +118,14 @@ class _MainShellState extends ConsumerState<MainShell> {
         children: tabs.map((t) => t.screen).toList(),
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.slate200, width: 0.5)),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.slate200,
+              width: 0.5,
+            ),
+          ),
         ),
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         child: SafeArea(

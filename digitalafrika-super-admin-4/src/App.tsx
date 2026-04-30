@@ -11,7 +11,8 @@ import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 export default function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const canAccess = isAuthenticated && hasValidStoredToken();
+  const user = useAuthStore((state) => state.user);
+  const canAccess = isAuthenticated && hasValidStoredToken() && user?.role === 'superadmin';
 
   return (
     <BrowserRouter>
@@ -20,73 +21,101 @@ export default function App() {
         
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <Dashboard />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
         
-        <Route 
-          path="/users" 
+        <Route
+          path="/users"
           element={
-            <Layout>
-              <UsersPage />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <UsersPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
-        <Route 
-          path="/rh-actions" 
+        <Route
+          path="/rh-actions"
           element={
-            <Layout>
-              <RHSupervision />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <RHSupervision />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
-        <Route 
-          path="/logs" 
+        <Route
+          path="/logs"
           element={
-            <Layout>
-              <AuditLogsPage />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <AuditLogsPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
-        <Route 
-          path="/reports" 
+        <Route
+          path="/reports"
           element={
-            <Layout>
-              <ReportsPage />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <ReportsPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
-        <Route 
-          path="/settings" 
+        <Route
+          path="/settings"
           element={
-            <Layout>
-              <SettingsPage />
-            </Layout>
-          } 
+            canAccess ? (
+              <Layout>
+                <SettingsPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
         {/* Fallback endpoints (to implement if time permits or keep as informative cards) */}
-        <Route 
-          path="*" 
+        <Route
+          path="*"
           element={
-            <Layout>
-              <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg">
-                <div className="text-center">
-                  <h3 className="text-lg font-bold font-mono uppercase text-gray-400">Section en cours de déploiement</h3>
-                  <p className="text-xs font-mono italic text-gray-300 mt-2 italic">Contrôle Super Admin requis</p>
+            canAccess ? (
+              <Layout>
+                <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <h3 className="text-lg font-bold font-mono uppercase text-gray-400">Section en cours de déploiement</h3>
+                    <p className="text-xs font-mono italic text-gray-300 mt-2 italic">Contrôle Super Admin requis</p>
+                  </div>
                 </div>
-              </div>
-            </Layout>
-          } 
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
       </Routes>
     </BrowserRouter>

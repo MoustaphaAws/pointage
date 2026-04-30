@@ -7,14 +7,16 @@ import { Navigate } from 'react-router-dom';
 export function Layout({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const logout = useAuthStore(state => state.logout);
+  const user = useAuthStore(state => state.user);
+  const hasSuperAdminRole = user?.role === 'superadmin';
 
   useEffect(() => {
-    if (!hasValidStoredToken()) {
+    if (!hasValidStoredToken() || !hasSuperAdminRole) {
       logout();
     }
-  }, [logout]);
+  }, [logout, hasSuperAdminRole]);
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasSuperAdminRole) {
     return <Navigate to="/login" replace />;
   }
 

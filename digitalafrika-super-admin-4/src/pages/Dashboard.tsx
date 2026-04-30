@@ -64,9 +64,9 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPIItem title="Taux d'absentéisme" value={`${stats.absenteeismRate}%`} icon={TrendingUp} trend="Global" trendColor="text-red-500" />
-        <KPIItem title="Retards > 30min" value={stats.lateArrivalsCount} icon={Clock} trend="Logs" trendColor="text-emerald-500" />
+        <KPIItem title="Retards > 15min" value={stats.lateArrivalsCount} icon={Clock} trend="Logs" trendColor="text-emerald-500" />
         <KPIItem title="Heures Sup (Mois)" value={stats.monthlyOvertimeHours} icon={Activity} trend="Estimé" trendColor="text-slate-400" />
-        <KPIItem title="Coût Heures Sup" value={`${stats.estimatedOvertimeCost}€`} icon={DollarSign} trend="Estimé" trendColor="text-slate-400" />
+        <KPIItem title="Coût Heures Sup" value={`${stats.estimatedOvertimeCost} FCFA`} icon={DollarSign} trend="Estimé" trendColor="text-slate-400" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

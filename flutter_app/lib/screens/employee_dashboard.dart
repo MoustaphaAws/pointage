@@ -27,7 +27,6 @@ class _EmployeeDashboardState extends ConsumerState<EmployeeDashboard> {
     final user = ref.watch(currentUserProvider);
     final statsAsync = ref.watch(monthStatsProvider);
     final pointageAsync = ref.watch(todayPointageProvider);
-    final absencesAsync = ref.watch(myAbsencesProvider);
 
     return RefreshIndicator(
       color: AppColors.violet600,
@@ -75,7 +74,9 @@ class _EmployeeDashboardState extends ConsumerState<EmployeeDashboard> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text('Activité Récente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Text('Activité Récente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              ),
               Icon(Icons.tune, size: 16, color: Color(0xFF737685)),
             ],
           ),
@@ -136,6 +137,7 @@ class _HelloCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final dateFormat = DateFormat('EEEE, d MMM', 'fr_FR');
     final String dateString = dateFormat.format(DateTime.now());
     final capitalizedDate = dateString[0].toUpperCase() + dateString.substring(1);
@@ -143,9 +145,9 @@ class _HelloCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.slate200),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.slate200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,11 +162,20 @@ class _HelloCard extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Bonjour, $firstName',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.slate900),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.slate900,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(capitalizedDate, style: const TextStyle(color: AppColors.slate500)),
+                Text(
+                  capitalizedDate,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.slate500,
+                  ),
+                ),
               ],
             ),
           ),
@@ -207,29 +218,33 @@ class _ClockInCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.violet700.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(40),
               ),
-              child: const Icon(Icons.qr_code_2, size: 40, color: AppColors.violet700),
+              child: const Icon(Icons.qr_code_2, size: 36, color: AppColors.violet700),
+            ),
+            const SizedBox(height: 16),
+            const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Prêt à démarrer ?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryBlack),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Scannez le QR code ou utilisez NFC à votre poste de travail pour pointer.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.slate500, height: 1.4, fontSize: 13),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Prêt à démarrer ?',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primaryBlack),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Scannez le QR code ou utilisez NFC à votre\nposte de travail pour pointer.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.slate500, height: 1.5),
-            ),
-            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -241,11 +256,11 @@ class _ClockInCard extends StatelessWidget {
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.violet700,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: const Icon(Icons.smartphone, size: 20),
-                label: const Text('Scanner pour pointer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                icon: const Icon(Icons.smartphone, size: 18),
+                label: const Text('Scanner pour pointer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -309,6 +324,7 @@ class _NextShiftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       color: AppColors.violet50,
       child: Padding(
@@ -318,7 +334,9 @@ class _NextShiftCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                const Text('Soldes et Demandes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                const Expanded(
+                  child: Text('Soldes et Demandes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                ),
                 InkWell(
                   onTap: onTapAbsence,
                   child: const Text('Nouvelle Demande', style: TextStyle(fontSize: 12, color: AppColors.violet700, fontWeight: FontWeight.w700)),
@@ -332,9 +350,9 @@ class _NextShiftCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkSurface : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.slate200),
+                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.slate200),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -360,9 +378,11 @@ class _NextShiftCard extends StatelessWidget {
                         children: <Widget>[
                           Icon(Icons.event_available, size: 14, color: AppColors.violet700),
                           SizedBox(width: 4),
-                          Text(
-                            'Cliquez sur Nouvelle Demande pour poser un congé',
-                            style: TextStyle(fontSize: 9, color: AppColors.violet700, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Text(
+                              'Cliquez sur Nouvelle Demande pour poser un congé',
+                              style: TextStyle(fontSize: 9, color: AppColors.violet700, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         ],
                       ),
@@ -395,19 +415,36 @@ class _ActivityTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isClockIn ? AppColors.violet700.withValues(alpha: 0.1) : AppColors.violet500.withValues(alpha: 0.1),
-          child: Icon(isClockIn ? Icons.login : Icons.logout, color: AppColors.violet700),
-        ),
-        title: Text(type, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text('$date, $time', style: const TextStyle(color: AppColors.slate500)),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: <Widget>[
-            const Text('Vérifié', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.emerald500)),
-            const Text('NFC/QR', style: TextStyle(fontSize: 11, color: AppColors.slate500)),
+            CircleAvatar(
+              backgroundColor: isClockIn ? AppColors.violet700.withValues(alpha: 0.1) : AppColors.violet500.withValues(alpha: 0.1),
+              child: Icon(isClockIn ? Icons.login : Icons.logout, color: AppColors.violet700, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(type, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text('$date, $time', style: const TextStyle(color: AppColors.slate500, fontSize: 12)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text('Vérifié', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.emerald500, fontSize: 12)),
+                const Text('NFC/QR', style: TextStyle(fontSize: 10, color: AppColors.slate500)),
+              ],
+            ),
           ],
         ),
       ),

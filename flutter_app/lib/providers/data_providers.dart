@@ -160,6 +160,42 @@ final livePointagesProvider = FutureProvider<List<Pointage>>((ref) async {
   }
 });
 
+// ─── Pointages d'un employé spécifique (Admin) ───
+final employeePointagesProvider = FutureProvider.family<List<Pointage>, String>((ref, employeeId) async {
+  final api = ref.watch(apiClientProvider);
+  if (api == null) return [];
+  try {
+    final response = await api.getPointagesByEmployee(employeeId);
+    return (response.data as List).map((e) => Pointage.fromJson(e)).toList();
+  } catch (e) {
+    return [];
+  }
+});
+
+// ─── Absences d'un employé spécifique (Admin) ───
+final employeeAbsencesProvider = FutureProvider.family<List<Absence>, String>((ref, employeeId) async {
+  final api = ref.watch(apiClientProvider);
+  if (api == null) return [];
+  try {
+    final response = await api.getAbsencesByEmployee(employeeId);
+    return (response.data as List).map((e) => Absence.fromJson(e)).toList();
+  } catch (e) {
+    return [];
+  }
+});
+
+// ─── Sanctions d'un employé spécifique (Admin) ───
+final employeeSanctionsProvider = FutureProvider.family<List<Sanction>, String>((ref, employeeId) async {
+  final api = ref.watch(apiClientProvider);
+  if (api == null) return [];
+  try {
+    final response = await api.getSanctionsByEmployee(employeeId);
+    return (response.data as List).map((e) => Sanction.fromJson(e)).toList();
+  } catch (e) {
+    return [];
+  }
+});
+
 // ─── Toutes les sanctions ───
 final allSanctionsProvider = FutureProvider<List<Sanction>>((ref) async {
   final api = ref.watch(apiClientProvider);

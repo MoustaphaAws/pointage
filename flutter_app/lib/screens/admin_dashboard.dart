@@ -13,6 +13,9 @@ class AdminDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sectionTitleColor = isDark ? AppColors.darkTextPrimary : AppColors.slate800;
+    final sectionTextColor = isDark ? AppColors.darkTextSecondary : AppColors.slate500;
     final globalStatsAsync = ref.watch(globalStatsProvider);
     final allAbsencesAsync = ref.watch(allAbsencesProvider);
     final weeklyPointagesAsync = ref.watch(weeklyPointagesProvider);
@@ -154,9 +157,12 @@ class AdminDashboard extends ConsumerWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.slate200, width: 0.5),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.slate200,
+                  width: 0.5,
+                ),
               ),
               child: Column(
                 children: [
@@ -165,13 +171,13 @@ class AdminDashboard extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'FLUX DE POINTAGE (SEMAINE)',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
-                            color: AppColors.slate800,
+                            color: sectionTitleColor,
                           ),
                         ),
                       ],
@@ -204,10 +210,10 @@ class AdminDashboard extends ConsumerWidget {
                                       padding: const EdgeInsets.only(top: 8),
                                       child: Text(
                                         days[value.toInt()],
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
-                                          color: AppColors.slate500,
+                                          color: sectionTextColor,
                                         ),
                                       ),
                                     );
@@ -221,9 +227,9 @@ class AdminDashboard extends ConsumerWidget {
                                   getTitlesWidget: (value, meta) {
                                     return Text(
                                       value.toInt().toString(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.slate400,
+                                        color: sectionTextColor,
                                       ),
                                     );
                                   },
@@ -289,13 +295,16 @@ class AdminDashboard extends ConsumerWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.slate200, width: 0.5),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.slate200,
+                  width: 0.5,
+                ),
               ),
               child: Column(
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(18),
                     child: Text(
                       'ALERTES DISCIPLINAIRES',
@@ -304,7 +313,7 @@ class AdminDashboard extends ConsumerWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
-                        color: AppColors.slate800,
+                        color: sectionTitleColor,
                       ),
                     ),
                   ),
@@ -430,13 +439,13 @@ class AdminDashboard extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // ─── Absence Validation ───
-            const Text(
+            Text(
               'DEMANDES EN ATTENTE',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
-                color: AppColors.slate800,
+                color: sectionTitleColor,
               ),
             ),
             const SizedBox(height: 14),
@@ -446,9 +455,11 @@ class AdminDashboard extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(50),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.slate100),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : AppColors.slate100,
+                        ),
                       ),
                       child: const Text(
                         'Aucune demande en attente pour le moment',

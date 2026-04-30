@@ -11,13 +11,17 @@ export default function Login() {
   const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, logout, isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.role === 'superadmin') {
       navigate('/dashboard');
+    } else if (isAuthenticated && user?.role !== 'superadmin') {
+      // Défense en profondeur: on purge la session locale si le rôle est invalide.
+      logout();
+      toast.error('Accès réservé au SuperAdmin');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate, logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
