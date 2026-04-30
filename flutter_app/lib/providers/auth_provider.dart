@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import '../models/models.dart';
 import '../services/api_client.dart';
 
@@ -103,7 +104,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = state.copyWith(user: user, token: token, isLoading: false);
     } catch (e) {
-      final errorMsg = e is Exception ? e.toString() : 'Identifiants invalides';
+      String errorMsg = 'Identifiants invalides';
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          errorMsg = 'Email ou mot de passe incorrect.';
+        } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          errorMsg = 'Erreur réseau : délai de connexion dépassé.';
+        } else if (e.response?.data != null && e.response?.data is Map && e.response?.data['message'] != null) {
+          errorMsg = e.response?.data['message'];
+        } else {
+          errorMsg = 'Une erreur serveur est survenue.';
+        }
+      } else if (e is Exception) {
+        errorMsg = 'Une erreur inattendue est survenue.';
+      }
       state = state.copyWith(isLoading: false, error: errorMsg);
     }
   }

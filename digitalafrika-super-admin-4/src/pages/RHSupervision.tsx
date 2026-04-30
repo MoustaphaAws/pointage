@@ -34,6 +34,8 @@ export default function RHSupervision() {
 
   useEffect(() => {
     fetchAbsences();
+    const timer = setInterval(fetchAbsences, 15000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleOverride = async (id: string, newStatus: string) => {
@@ -154,6 +156,13 @@ export default function RHSupervision() {
                   <p className="text-[11px] font-bold uppercase text-emerald-900 tracking-tight">Traçabilité complète</p>
                   <p className="text-xs text-emerald-700 leading-relaxed mt-1 italic">Toutes les modifications sont enregistrées avec horodatage et identifiant du SuperAdmin.</p>
                 </div>
+              </div>
+
+              <div className="p-4 bg-white border border-blue-100 rounded-lg">
+                <p className="text-[11px] font-bold uppercase text-slate-700">Avertissements & Sanctions en temps réel</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Rafraîchissement automatique actif toutes les 15 secondes.
+                </p>
               </div>
             </div>
           </Card>

@@ -171,6 +171,155 @@ app.put("/api/admin/admins/:id", async (req, res) => {
   res.json({ success: true });
 });
 
+app.get("/api/admin/employees/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.status(400).json({ message: "Identifiant invalide." });
+  }
+
+  const employee = await query(
+    `
+      SELECT id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      FROM employes
+      WHERE id = $1 AND role IN ('admin', 'employee')
+      LIMIT 1
+    `,
+    [id]
+  );
+  if (!employee.rowCount) {
+    return res.status(404).json({ message: "Employé introuvable." });
+  }
+
+  const row = employee.rows[0];
+  const fullNameTarget = `${row.first_name} ${row.last_name}`.trim();
+  const activity = await query(
+    `
+      SELECT id, created_at, user_name, action, target, details
+      FROM audit_logs
+      WHERE user_id = $1 OR target = $2
+      ORDER BY created_at DESC
+      LIMIT 50
+    `,
+    [id, fullNameTarget]
+  );
+
+  res.json({
+    profile: {
+      id: String(row.id),
+      firstName: row.first_name,
+      lastName: row.last_name,
+      email: row.email,
+      role: row.role,
+      service: row.service,
+      poste: row.poste || "",
+      active: row.active,
+      badgeUid: row.badge_uid || "-",
+      createdAt: row.created_at,
+    },
+    activity: activity.rows.map((log) => ({
+      id: String(log.id),
+      timestamp: log.created_at,
+      action: log.action,
+      actor: log.user_name,
+      target: log.target,
+      details: log.details,
+    })),
+  });
+});
+
+app.get("/api/admin/me", async (req, res) => {
+  const result = await query(
+    `
+      SELECT id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      FROM employes
+      WHERE id = $1 AND role = 'superadmin'
+      LIMIT 1
+    `,
+    [req.auth.sub]
+  );
+  if (!result.rowCount) {
+    return res.status(404).json({ message: "SuperAdmin introuvable." });
+  }
+  const me = result.rows[0];
+  res.json({
+    id: String(me.id),
+    firstName: me.first_name,
+    lastName: me.last_name,
+    email: me.email,
+    role: me.role,
+    service: me.service,
+    poste: me.poste || "",
+    active: me.active,
+    badgeUid: me.badge_uid || "-",
+    createdAt: me.created_at,
+  });
+});
+
+app.put("/api/admin/me", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const { firstName, lastName, email, service, poste, badgeUid, password } = req.body || {};
+
+  if (password && String(password).length < 8) {
+    return res.status(400).json({ message: "Le mot de passe doit contenir au moins 8 caractères." });
+  }
+
+  let passwordHash = null;
+  if (password) {
+    passwordHash = await bcrypt.hash(String(password), 10);
+  }
+
+  const update = await query(
+    `
+      UPDATE employes
+      SET first_name = COALESCE($1, first_name),
+          last_name = COALESCE($2, last_name),
+          email = COALESCE($3, email),
+          service = COALESCE($4, service),
+          poste = COALESCE($5, poste),
+          badge_uid = COALESCE($6, badge_uid),
+          password_hash = COALESCE($7, password_hash)
+      WHERE id = $8 AND role = 'superadmin'
+      RETURNING id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+    `,
+    [
+      firstName || null,
+      lastName || null,
+      email ? String(email).toLowerCase() : null,
+      service || null,
+      poste || null,
+      badgeUid || null,
+      passwordHash,
+      req.auth.sub,
+    ]
+  );
+  if (!update.rowCount) {
+    return res.status(404).json({ message: "SuperAdmin introuvable." });
+  }
+
+  await writeAuditLog({
+    user: actor,
+    action: "UPDATE_PROFILE",
+    target: fullName(update.rows[0]),
+    details: "Mise à jour du profil SuperAdmin",
+    ip: req.ip,
+  });
+
+  const updated = update.rows[0];
+  res.json({
+    id: String(updated.id),
+    firstName: updated.first_name,
+    lastName: updated.last_name,
+    email: updated.email,
+    role: updated.role,
+    service: updated.service,
+    poste: updated.poste || "",
+    active: updated.active,
+    badgeUid: updated.badge_uid || "-",
+    createdAt: updated.created_at,
+  });
+});
+
 app.get("/api/admin/referentials", async (_req, res) => {
   const keys = await query(
     `
@@ -560,6 +709,23 @@ app.get("/api/admin/stats/global", async (_req, res) => {
   const total = totalUsers.rows[0].total || 1;
   const inactive = total - activeUsers.rows[0].total;
   const absenteeismRate = Number(((inactive / total) * 100).toFixed(1));
+  const serviceActivityRows = await query(
+    `
+      SELECT service, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE active = true)::int AS active
+      FROM employes
+      WHERE role IN ('employee', 'admin')
+      GROUP BY service
+      ORDER BY service ASC
+    `
+  );
+  const criticalRows = await query(
+    `
+      SELECT COUNT(*)::int AS total
+      FROM audit_logs
+      WHERE action IN ('DELETE_USER', 'SUSPEND_USER')
+        AND created_at >= NOW() - INTERVAL '24 hours'
+    `
+  );
 
   res.json({
     employees: employees.rows[0].total,
@@ -570,6 +736,12 @@ app.get("/api/admin/stats/global", async (_req, res) => {
     lateArrivalsCount: createUsers.rows[0].total,
     monthlyOvertimeHours: updateConfig.rows[0].total * 4,
     estimatedOvertimeCost: updateConfig.rows[0].total * 80,
+    serviceActivity: serviceActivityRows.rows.map((row) => ({
+      name: row.service,
+      current: row.active,
+      total: row.total,
+    })),
+    criticalAlerts: criticalRows.rows[0].total,
   });
 });
 
@@ -595,6 +767,55 @@ app.get("/api/admin/activity", async (_req, res) => {
     severity: row.action.includes("DELETE") ? "high" : "low",
   }));
   res.json(items);
+});
+
+app.get("/api/admin/rh-absences", async (_req, res) => {
+  const rows = await query(
+    `
+      SELECT id, created_at, user_name, action, target, details
+      FROM audit_logs
+      WHERE action IN ('SUSPEND_USER', 'DELETE_USER', 'RESET_PASSWORD', 'RH_OVERRIDE')
+      ORDER BY created_at DESC
+      LIMIT 100
+    `
+  );
+
+  const mapped = rows.rows.map((row) => {
+    let statut = "approuvee";
+    if (row.action === "DELETE_USER") statut = "rejetee";
+    if (row.action === "RH_OVERRIDE") statut = "annulee";
+    return {
+      id: String(row.id),
+      employeeName: row.target,
+      typeAbsence: row.action.replaceAll("_", " "),
+      dateDebut: row.created_at,
+      dateFin: row.created_at,
+      statut,
+      validePar: row.user_name,
+      motif: row.details,
+    };
+  });
+  res.json(mapped);
+});
+
+app.put("/api/admin/rh-absences/:id/override", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const id = Number(req.params.id);
+  const { statut } = req.body || {};
+  const existing = await query("SELECT target, details FROM audit_logs WHERE id = $1 LIMIT 1", [id]);
+  if (!existing.rowCount) {
+    return res.status(404).json({ message: "Entrée de supervision introuvable." });
+  }
+
+  await writeAuditLog({
+    user: actor,
+    action: "RH_OVERRIDE",
+    target: existing.rows[0].target,
+    details: `Override SuperAdmin: ${String(statut || "annulee")}. Source: ${existing.rows[0].details}`,
+    ip: req.ip,
+  });
+  res.json({ success: true });
 });
 
 app.get("/api/admin/export/global", async (req, res) => {
@@ -635,18 +856,29 @@ app.get("/api/admin/export/global", async (req, res) => {
           SELECT user_name, action, target, details, created_at
           FROM audit_logs
           WHERE action IN ('SUSPEND_USER', 'DELETE_USER', 'RESET_PASSWORD')
+          ${month ? `AND to_char(created_at, 'YYYY-MM') = $1` : ""}
           ORDER BY created_at DESC
-        `
+        `,
+        month ? [month] : []
       )
     ).rows;
   } else {
+    const auditWhere = [];
+    const auditValues = [];
+    if (month) {
+      auditValues.push(month);
+      auditWhere.push(`to_char(created_at, 'YYYY-MM') = $${auditValues.length}`);
+    }
+    const auditWhereClause = auditWhere.length ? `WHERE ${auditWhere.join(" AND ")}` : "";
     rows = (
       await query(
         `
           SELECT user_name, action, target, details, created_at
           FROM audit_logs
+          ${auditWhereClause}
           ORDER BY created_at DESC
-        `
+        `,
+        auditValues
       )
     ).rows;
   }

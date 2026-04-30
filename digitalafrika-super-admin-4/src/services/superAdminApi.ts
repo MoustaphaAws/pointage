@@ -30,6 +30,8 @@ export interface GlobalStats {
   lateArrivalsCount: number;
   monthlyOvertimeHours: number;
   estimatedOvertimeCost: number;
+  serviceActivity?: Array<{ name: string; current: number; total: number }>;
+  criticalAlerts?: number;
 }
 
 export interface Referentials {
@@ -175,5 +177,42 @@ export async function exportGlobalReport(params: {
     params,
     responseType: "blob",
   });
+  return response.data;
+}
+
+export interface EmployeeActivityItem {
+  id: string;
+  timestamp: string;
+  action: string;
+  actor: string;
+  target: string;
+  details: string;
+}
+
+export interface EmployeeDetailsResponse {
+  profile: User;
+  activity: EmployeeActivityItem[];
+}
+
+export async function fetchEmployeeDetails(id: string): Promise<EmployeeDetailsResponse> {
+  const response = await api.get(`/admin/employees/${id}`);
+  return response.data;
+}
+
+export async function fetchCurrentSuperAdmin(): Promise<User> {
+  const response = await api.get("/admin/me");
+  return response.data;
+}
+
+export async function updateCurrentSuperAdmin(payload: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  service?: string;
+  poste?: string;
+  badgeUid?: string;
+  password?: string;
+}): Promise<User> {
+  const response = await api.put("/admin/me", payload);
   return response.data;
 }

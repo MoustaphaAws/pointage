@@ -58,6 +58,8 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     loadLogs();
+    const timer = setInterval(() => loadLogs(1), 20000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {

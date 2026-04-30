@@ -4,6 +4,7 @@ import { User } from '../types';
 import { Plus, Search, Filter, Edit2, ShieldOff, Trash2, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createUser, fetchReferentials, fetchUsers, resetUserPassword, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
+import { useNavigate } from 'react-router-dom';
 
 type UserFormState = {
   firstName: string;
@@ -28,6 +29,7 @@ const emptyForm: UserFormState = {
 };
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -263,7 +265,11 @@ export default function UsersPage() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+              <tr
+                key={user.id}
+                className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                onClick={() => navigate(`/users/${user.id}`)}
+              >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs italic">
@@ -297,7 +303,8 @@ export default function UsersPage() {
                     <Button 
                       variant="ghost" 
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={() => toggleRole(user.id)}
+                      onClick={(e) => { e.stopPropagation(); toggleRole(user.id); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       title={user.role === 'admin' ? "Rétrograder en Employé" : "Promouvoir en Admin RH"}
                     >
                       <ShieldOff size={16} />
@@ -305,14 +312,16 @@ export default function UsersPage() {
                     <Button
                       variant="ghost"
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={() => startEdit(user)}
+                      onClick={(e) => { e.stopPropagation(); startEdit(user); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
                       <Edit2 size={16} />
                     </Button>
                     <Button
                       variant="ghost"
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={() => { setPasswordModalUser(user); setNewPassword(''); }}
+                      onClick={(e) => { e.stopPropagation(); setPasswordModalUser(user); setNewPassword(''); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       title="Réinitialiser mot de passe"
                     >
                       <KeyRound size={16} />
@@ -320,7 +329,8 @@ export default function UsersPage() {
                     <Button 
                       variant="ghost" 
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50"
-                      onClick={() => handleDelete(user.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
                       <Trash2 size={16} className="text-red-500" />
                     </Button>

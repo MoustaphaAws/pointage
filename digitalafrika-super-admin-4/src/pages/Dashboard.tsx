@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Badge } from '../components/ui/LayoutComponents';
 import { 
   Clock, AlertCircle, TrendingUp, DollarSign,
@@ -12,16 +12,10 @@ import { formatDateTime, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchActivityFeed, fetchGlobalStats, GlobalStats } from '../services/superAdminApi';
 import toast from 'react-hot-toast';
-
-const chartData = [
-  { name: 'Lun', absences: 2, retards: 4 },
-  { name: 'Mar', absences: 3, retards: 2 },
-  { name: 'Mer', absences: 1, retards: 5 },
-  { name: 'Jeu', absences: 4, retards: 3 },
-  { name: 'Ven', absences: 2, retards: 1 },
-];
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [feed, setFeed] = useState<ActivityFeedItem[]>([]);
   const [stats, setStats] = useState<GlobalStats>({
     employees: 0,
@@ -34,14 +28,34 @@ export default function Dashboard() {
     estimatedOvertimeCost: 0,
   });
 
-  useEffect(() => {
-    Promise.all([fetchGlobalStats(), fetchActivityFeed()])
+  const loadDashboard = () => {
+    return Promise.all([fetchGlobalStats(), fetchActivityFeed()])
       .then(([statsData, feedData]) => {
         setStats(statsData);
         setFeed(feedData.slice(0, 10));
       })
       .catch(() => toast.error("Impossible de charger les statistiques globales"));
+  };
+
+  useEffect(() => {
+    loadDashboard();
+    const timer = setInterval(loadDashboard, 15000);
+    return () => clearInterval(timer);
   }, []);
+
+  const chartData = useMemo(
+    () =>
+      (stats.serviceActivity || []).map((service) => ({
+        name: service.name,
+        active: service.current,
+      })),
+    [stats.serviceActivity]
+  );
+
+  const criticalItem = useMemo(
+    () => feed.find((item) => item.severity === 'high'),
+    [feed]
+  );
 
   return (
     <div className="space-y-6">
@@ -57,7 +71,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="text-right">
-          <Button className="py-2">Export Rapport PDF</Button>
+          <Button className="py-2" onClick={() => navigate('/reports')}>Export Rapport PDF</Button>
         </div>
       </div>
 
@@ -74,14 +88,20 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           <Card title="Activité par Service (Temps Réel)">
             <div className="space-y-4 pt-2">
-              <ServiceProgress name="Marketing & Com" current={14} total={15} color="bg-blue-500" />
-              <ServiceProgress name="Développement IT" current={stats.activeUsers} total={stats.employees + stats.admins || 1} color="bg-purple-500" />
-              <ServiceProgress name="Administration RH" current={stats.admins} total={Math.max(stats.admins, 1)} color="bg-orange-500" />
+              {(stats.serviceActivity || []).slice(0, 4).map((service, idx) => (
+                <ServiceProgress
+                  key={service.name}
+                  name={service.name}
+                  current={service.current}
+                  total={Math.max(service.total, 1)}
+                  color={idx % 2 === 0 ? "bg-blue-500" : "bg-purple-500"}
+                />
+              ))}
             </div>
             <div className="mt-8 h-[100px] min-h-[100px] w-full min-w-0 opacity-60">
                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <Line type="monotone" dataKey="absences" stroke="#3B82F6" strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={3} dot={false} />
                   </LineChart>
                </ResponsiveContainer>
                <p className="text-[10px] text-center text-slate-400 mt-2">Flux de pointages cumulés - 24 dernières heures</p>
@@ -94,7 +114,11 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm font-bold text-red-900">Alerte Critique</p>
-              <p className="text-xs text-red-700">Admin RH (M. Koulibaly) a validé 3 absences sans justificatif médical en zone A.</p>
+              <p className="text-xs text-red-700">
+                {criticalItem
+                  ? `${criticalItem.userName}: ${criticalItem.details}`
+                  : `${stats.criticalAlerts || 0} alerte(s) critique(s) sur les dernières 24h.`}
+              </p>
             </div>
             <button className="ml-auto bg-white border border-red-200 text-red-700 text-xs px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium transition-colors">
               Intervenir

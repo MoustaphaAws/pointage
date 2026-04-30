@@ -7,6 +7,7 @@ import RHSupervision from './pages/RHSupervision';
 import SettingsPage from './pages/Settings';
 import AuditLogsPage from './pages/Logs';
 import ReportsPage from './pages/Reports';
+import EmployeeDetailsPage from './pages/EmployeeDetails';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 export default function App() {
@@ -40,6 +41,18 @@ export default function App() {
             canAccess ? (
               <Layout>
                 <UsersPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/users/:id"
+          element={
+            canAccess ? (
+              <Layout>
+                <EmployeeDetailsPage />
               </Layout>
             ) : (
               <Navigate to="/login" replace />

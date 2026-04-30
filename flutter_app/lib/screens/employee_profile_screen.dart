@@ -333,6 +333,8 @@ class _SettingsSection extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
+          _ChangePasswordTile(),
+          const Divider(height: 1),
           const _SettingLanguage(),
         ],
       ),
@@ -381,6 +383,156 @@ class _SettingToggle extends StatelessWidget {
   }
 }
 
+class _ChangePasswordTile extends ConsumerWidget {
+  const _ChangePasswordTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.lock_outline_rounded, color: AppColors.slate500),
+      title: const Text('Changer le mot de passe', style: TextStyle(fontWeight: FontWeight.w700)),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.slate500),
+      onTap: () => _showChangePasswordDialog(context, ref),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
+    final oldPwdCtrl = TextEditingController();
+    final newPwdCtrl = TextEditingController();
+    final confirmPwdCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          bool isLoading = false;
+          String? errorText;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: AppColors.violet700, size: 22),
+                SizedBox(width: 8),
+                Text('Changer le mot de passe', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: oldPwdCtrl,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Mot de passe actuel',
+                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: AppColors.slate50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.slate200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.violet600, width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: newPwdCtrl,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Nouveau mot de passe',
+                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: AppColors.slate50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.slate200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.violet600, width: 2)),
+                      helperText: 'Minimum 8 caractères',
+                      helperStyle: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: confirmPwdCtrl,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmer le nouveau mot de passe',
+                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: AppColors.slate50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.slate200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.violet600, width: 2)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final oldPwd = oldPwdCtrl.text.trim();
+                  final newPwd = newPwdCtrl.text.trim();
+                  final confirmPwd = confirmPwdCtrl.text.trim();
+
+                  if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Tous les champs sont requis'), backgroundColor: AppColors.rose500, behavior: SnackBarBehavior.floating),
+                    );
+                    return;
+                  }
+                  if (newPwd.length < 8) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Le mot de passe doit contenir au moins 8 caractères'), backgroundColor: AppColors.rose500, behavior: SnackBarBehavior.floating),
+                    );
+                    return;
+                  }
+                  if (newPwd != confirmPwd) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Les mots de passe ne correspondent pas'), backgroundColor: AppColors.rose500, behavior: SnackBarBehavior.floating),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final api = ref.read(apiClientProvider);
+                    if (api == null) return;
+                    await api.changePassword(oldPwd, newPwd);
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Mot de passe modifié avec succès ✓', style: TextStyle(fontWeight: FontWeight.w700)),
+                          backgroundColor: AppColors.emerald500,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      final msg = e.toString().contains('401') ? 'Ancien mot de passe incorrect' : 'Erreur lors du changement';
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text(msg), backgroundColor: AppColors.rose500, behavior: SnackBarBehavior.floating),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.violet700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('MODIFIER', style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _LogoutButton extends ConsumerWidget {
   const _LogoutButton();
 
@@ -389,11 +541,8 @@ class _LogoutButton extends ConsumerWidget {
     return FilledButton.icon(
       onPressed: () async {
         await ref.read(authProvider.notifier).logout();
-        if (!context.mounted) return;
-        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
+        // Don't manually navigate — main.dart will detect auth state change
+        // and automatically show LoginScreen
       },
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.rose100,

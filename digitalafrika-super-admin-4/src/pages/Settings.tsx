@@ -2,14 +2,27 @@ import { useEffect, useState } from 'react';
 import { Card, Button } from '../components/ui/LayoutComponents';
 import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchReferentials, fetchSettings, saveSettings } from '../services/superAdminApi';
+import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function SettingsPage() {
+  const authUser = useAuthStore((state) => state.user);
+  const login = useAuthStore((state) => state.login);
+  const token = useAuthStore((state) => state.token);
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [services, setServices] = useState<string[]>([]);
   const [postes, setPostes] = useState<string[]>([]);
   const [newService, setNewService] = useState('');
   const [newPoste, setNewPoste] = useState('');
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    service: '',
+    poste: '',
+    badgeUid: '',
+    password: '',
+  });
 
   useEffect(() => {
     fetchSettings()
@@ -22,6 +35,20 @@ export default function SettingsPage() {
         setPostes(data.postes || []);
       })
       .catch(() => toast.error("Impossible de charger les référentiels"));
+
+    fetchCurrentSuperAdmin()
+      .then((user) =>
+        setProfileForm({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email || '',
+          service: user.service || '',
+          poste: user.poste || '',
+          badgeUid: user.badgeUid || '',
+          password: '',
+        })
+      )
+      .catch(() => toast.error("Impossible de charger le profil SuperAdmin"));
   }, []);
 
   const addValue = async (kind: 'services' | 'postes') => {
@@ -67,6 +94,19 @@ export default function SettingsPage() {
     );
   };
 
+  const saveProfile = async () => {
+    try {
+      const updated = await updateCurrentSuperAdmin(profileForm);
+      if (token) {
+        login(updated, token);
+      }
+      setProfileForm((prev) => ({ ...prev, password: '' }));
+      toast.success('Profil SuperAdmin mis à jour');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Erreur de mise à jour du profil');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-slate-200 pb-4">
@@ -81,6 +121,24 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card title="Mon Profil SuperAdmin">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Prénom" value={profileForm.firstName} onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Nom" value={profileForm.lastName} onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm md:col-span-2" placeholder="Email" value={profileForm.email} onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Service" value={profileForm.service} onChange={(e) => setProfileForm((prev) => ({ ...prev, service: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Poste" value={profileForm.poste} onChange={(e) => setProfileForm((prev) => ({ ...prev, poste: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Badge RFID" value={profileForm.badgeUid} onChange={(e) => setProfileForm((prev) => ({ ...prev, badgeUid: e.target.value }))} />
+            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" type="password" placeholder="Nouveau mot de passe (optionnel)" value={profileForm.password} onChange={(e) => setProfileForm((prev) => ({ ...prev, password: e.target.value }))} />
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button onClick={saveProfile} disabled={!profileForm.firstName || !profileForm.lastName || !profileForm.email}>
+              Mettre à jour mon profil
+            </Button>
+          </div>
+          {authUser?.email && <p className="text-[11px] text-slate-400 mt-2">Session connectée: {authUser.email}</p>}
+        </Card>
+
         <Card title="Règles Disciplinaires (Seuils)">
           <div className="space-y-6 pt-2">
             <div className="flex items-center justify-between group">
