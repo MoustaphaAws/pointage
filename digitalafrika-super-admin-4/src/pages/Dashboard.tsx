@@ -99,11 +99,17 @@ export default function Dashboard() {
               ))}
             </div>
             <div className="mt-8 h-[100px] min-h-[100px] w-full min-w-0 opacity-60">
-               <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={3} dot={false} />
-                  </LineChart>
-               </ResponsiveContainer>
+               {chartData.length > 0 ? (
+                 <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
+                    <LineChart data={chartData}>
+                      <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={3} dot={false} />
+                    </LineChart>
+                 </ResponsiveContainer>
+               ) : (
+                 <div className="h-full flex items-center justify-center text-[10px] text-slate-400">
+                   Aucune activité service disponible
+                 </div>
+               )}
                <p className="text-[10px] text-center text-slate-400 mt-2">Flux de pointages cumulés - 24 dernières heures</p>
             </div>
           </Card>

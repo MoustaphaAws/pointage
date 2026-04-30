@@ -72,6 +72,8 @@ export default function UsersPage() {
     try {
       await updateUserRole(id, newRole);
       setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+      const refreshedUsers = await fetchUsers();
+      setUsers(refreshedUsers);
       toast.success(`${current.firstName} est maintenant ${newRole === 'admin' ? 'un Administrateur RH' : 'un Employé'}`);
     } catch {
       toast.error("Erreur lors du changement de rôle");
@@ -268,7 +270,7 @@ export default function UsersPage() {
               <tr
                 key={user.id}
                 className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                onClick={() => navigate(`/users/${user.id}`)}
+                onClick={() => navigate(`/users/${encodeURIComponent(String(user.id))}`, { state: { user } })}
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">

@@ -195,8 +195,50 @@ export interface EmployeeDetailsResponse {
 }
 
 export async function fetchEmployeeDetails(id: string): Promise<EmployeeDetailsResponse> {
-  const response = await api.get(`/admin/employees/${id}`);
-  return response.data;
+  try {
+    const response = await api.get(`/admin/employees/${id}`);
+    return response.data;
+  } catch {
+    const users = await fetchUsers();
+    let user = users.find((item) => String(item.id) === String(id));
+    if (!user) {
+      const decoded = decodeURIComponent(String(id || "")).trim().toLowerCase();
+      if (decoded.includes("@")) {
+        user = users.find((item) => item.email.toLowerCase() === decoded);
+      }
+    }
+    if (!user) {
+      throw new Error("Employé introuvable");
+    }
+
+    const fullName = `${user.firstName} ${user.lastName}`.trim();
+    let activity: EmployeeActivityItem[] = [];
+    try {
+      const logs = await fetchAuditLogsFiltered({
+        q: fullName,
+        page: 1,
+        pageSize: 50,
+        sortBy: "created_at",
+        sortOrder: "desc",
+      });
+      activity = logs.items.map((log) => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        action: log.action,
+        actor: log.userName,
+        target: log.target,
+        details: log.details,
+      }));
+    } catch {
+      // Non bloquant en production: afficher le profil même si le service logs est indisponible.
+      activity = [];
+    }
+
+    return {
+      profile: user,
+      activity,
+    };
+  }
 }
 
 export async function fetchCurrentSuperAdmin(): Promise<User> {

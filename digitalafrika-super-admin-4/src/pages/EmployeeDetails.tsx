@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge, Button, Card } from '../components/ui/LayoutComponents';
 import { fetchEmployeeDetails, EmployeeDetailsResponse } from '../services/superAdminApi';
 import { User } from '../types';
@@ -9,14 +9,20 @@ import toast from 'react-hot-toast';
 export default function EmployeeDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation() as { state?: { user?: User } };
   const [profile, setProfile] = useState<User | null>(null);
   const [activity, setActivity] = useState<EmployeeDetailsResponse['activity']>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
+    if (location.state?.user) {
+      setProfile(location.state.user);
+    }
+
+    const decodedId = decodeURIComponent(id);
     setLoading(true);
-    fetchEmployeeDetails(id)
+    fetchEmployeeDetails(decodedId)
       .then((data) => {
         setProfile(data.profile);
         setActivity(data.activity);
