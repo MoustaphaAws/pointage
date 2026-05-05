@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Card, Button, Badge } from '../components/ui/LayoutComponents';
 import { AdminPermissions, User } from '../types';
-import { Plus, Search, Filter, Edit2, ShieldOff, Trash2, KeyRound } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, ShieldOff, Trash2, UserCog } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, resetUserPassword, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
+import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
 import { useNavigate } from 'react-router-dom';
 
 type UserFormState = {
@@ -38,8 +38,11 @@ export default function UsersPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
-  const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null);
-  const [newPassword, setNewPassword] = useState('');
+  const [roleModalUser, setRoleModalUser] = useState<User | null>(null);
+  const [roleForm, setRoleForm] = useState<{ role: 'admin' | 'employee'; adminPermissions: AdminPermissions }>({
+    role: 'employee',
+    adminPermissions: defaultAdminPermissions,
+  });
   const [services, setServices] = useState<string[]>([]);
   const [postes, setPostes] = useState<string[]>([]);
 
@@ -70,10 +73,13 @@ export default function UsersPage() {
     const current = users.find((u) => u.id === id);
     if (!current) return;
     const newRole = current.role === 'admin' ? 'employee' : 'admin';
+    const nextPermissions = newRole === 'admin' ? (current.adminPermissions || defaultAdminPermissions) : undefined;
 
     try {
-      await updateUserRole(id, newRole);
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, role: newRole } : u));
+      await updateUserRole(id, newRole, nextPermissions);
+      setUsers(prev =>
+        prev.map(u => (u.id === id ? { ...u, role: newRole, adminPermissions: nextPermissions } : u))
+      );
       const refreshedUsers = await fetchUsers();
       setUsers(refreshedUsers);
       toast.success(`${current.firstName} est maintenant ${newRole === 'admin' ? 'un Administrateur RH' : 'un Employé'}`);
@@ -160,16 +166,45 @@ export default function UsersPage() {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!passwordModalUser) return;
+  const openRoleModal = (user: User) => {
+    setRoleModalUser(user);
+    setRoleForm({
+      role: user.role === 'admin' ? 'admin' : 'employee',
+      adminPermissions: user.adminPermissions || defaultAdminPermissions,
+    });
+  };
+
+  const saveRoleAssignment = async () => {
+    if (!roleModalUser) return;
     try {
-      await resetUserPassword(passwordModalUser.id, newPassword);
-      toast.success("Mot de passe réinitialisé");
-      setPasswordModalUser(null);
-      setNewPassword('');
+      await updateUser(roleModalUser.id, {
+        role: roleForm.role,
+        adminPermissions: roleForm.role === 'admin' ? roleForm.adminPermissions : undefined,
+      });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === roleModalUser.id
+            ? {
+                ...u,
+                role: roleForm.role,
+                adminPermissions: roleForm.role === 'admin' ? roleForm.adminPermissions : undefined,
+              }
+            : u
+        )
+      );
+      toast.success('Rôle et permissions mis à jour');
+      setRoleModalUser(null);
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Erreur lors de la réinitialisation");
+      toast.error(error?.response?.data?.message || 'Erreur lors de la mise à jour des rôles');
     }
+  };
+
+  const getPermissionStatus = (permissions?: AdminPermissions) => {
+    const p = permissions || defaultAdminPermissions;
+    const count = [p.canPoint, p.canApplySanctions, p.canValidateAbsences, p.canManageEmployees].filter(Boolean).length;
+    if (count === 4) return { label: 'Complet', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    if (count === 0) return { label: 'Restreint', className: 'bg-rose-50 text-rose-700 border-rose-200' };
+    return { label: 'Partiel', className: 'bg-amber-50 text-amber-700 border-amber-200' };
   };
 
   return (
@@ -277,26 +312,87 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {passwordModalUser && (
+      {roleModalUser && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
           <Card className="w-full max-w-md border-slate-200">
-            <h3 className="text-sm font-bold text-slate-800">Réinitialiser le mot de passe</h3>
+            <h3 className="text-sm font-bold text-slate-800">Assigner rôle & permissions</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Utilisateur: {passwordModalUser.firstName} {passwordModalUser.lastName}
+              Utilisateur: {roleModalUser.firstName} {roleModalUser.lastName}
             </p>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Nouveau mot de passe (min 8 caractères)"
-              className="mt-4 w-full px-3 py-2 bg-slate-50 rounded-md text-sm"
-            />
+            <div className="mt-4 space-y-3">
+              <select
+                value={roleForm.role}
+                onChange={(e) => setRoleForm((prev) => ({ ...prev, role: e.target.value as 'admin' | 'employee' }))}
+                className="w-full px-3 py-2 bg-slate-50 rounded-md text-sm"
+              >
+                <option value="employee">Employé</option>
+                <option value="admin">Admin RH</option>
+              </select>
+
+              {roleForm.role === 'admin' && (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-slate-700 uppercase">Permissions admin</p>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.adminPermissions.canPoint}
+                      onChange={(e) =>
+                        setRoleForm((prev) => ({
+                          ...prev,
+                          adminPermissions: { ...prev.adminPermissions, canPoint: e.target.checked },
+                        }))
+                      }
+                    />
+                    Autoriser le pointage
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.adminPermissions.canApplySanctions}
+                      onChange={(e) =>
+                        setRoleForm((prev) => ({
+                          ...prev,
+                          adminPermissions: { ...prev.adminPermissions, canApplySanctions: e.target.checked },
+                        }))
+                      }
+                    />
+                    Autoriser l'application de sanctions
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.adminPermissions.canValidateAbsences}
+                      onChange={(e) =>
+                        setRoleForm((prev) => ({
+                          ...prev,
+                          adminPermissions: { ...prev.adminPermissions, canValidateAbsences: e.target.checked },
+                        }))
+                      }
+                    />
+                    Autoriser l'approbation/rejet des absences
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.adminPermissions.canManageEmployees}
+                      onChange={(e) =>
+                        setRoleForm((prev) => ({
+                          ...prev,
+                          adminPermissions: { ...prev.adminPermissions, canManageEmployees: e.target.checked },
+                        }))
+                      }
+                    />
+                    Autoriser la creation/suppression d'employes
+                  </label>
+                </div>
+              )}
+            </div>
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="secondary" onClick={() => { setPasswordModalUser(null); setNewPassword(''); }}>
+              <Button variant="secondary" onClick={() => setRoleModalUser(null)}>
                 Annuler
               </Button>
-              <Button onClick={handleResetPassword} disabled={newPassword.length < 8}>
-                Réinitialiser
+              <Button onClick={saveRoleAssignment}>
+                Enregistrer
               </Button>
             </div>
           </Card>
@@ -355,7 +451,42 @@ export default function UsersPage() {
                 </td>
                 <td className="px-6 py-4 text-xs font-semibold">
                   {user.role === 'admin' ? (
-                    <span className="text-purple-600">Admin RH</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-purple-600">Admin RH</span>
+                        {(() => {
+                          const status = getPermissionStatus(user.adminPermissions);
+                          return (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-bold ${status.className}`}>
+                              {status.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {(() => {
+                          const perms = user.adminPermissions || {} as AdminPermissions;
+                          const items = [
+                            { key: 'canPoint', label: 'Pointage', active: perms.canPoint },
+                            { key: 'canApplySanctions', label: 'Sanctions', active: perms.canApplySanctions },
+                            { key: 'canValidateAbsences', label: 'Absences', active: perms.canValidateAbsences },
+                            { key: 'canManageEmployees', label: 'Employés', active: perms.canManageEmployees },
+                          ];
+                          return items.map((item) => (
+                            <span
+                              key={item.key}
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold leading-tight ${
+                                item.active
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
+                              }`}
+                            >
+                              {item.active ? '✓' : '✗'} {item.label}
+                            </span>
+                          ));
+                        })()}
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-slate-600">Employé</span>
                   )}
@@ -377,7 +508,7 @@ export default function UsersPage() {
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
                       onClick={(e) => { e.stopPropagation(); toggleRole(user.id); }}
                       onMouseDown={(e) => e.stopPropagation()}
-                      title={user.role === 'admin' ? "Rétrograder en Employé" : "Promouvoir en Admin RH"}
+                      title={user.role === 'admin' ? "Rétrograder en Employé (permissions retirées)" : "Promouvoir en Admin RH (permissions à définir)"}
                     >
                       <ShieldOff size={16} />
                     </Button>
@@ -392,11 +523,11 @@ export default function UsersPage() {
                     <Button
                       variant="ghost"
                       className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={(e) => { e.stopPropagation(); setPasswordModalUser(user); setNewPassword(''); }}
+                      onClick={(e) => { e.stopPropagation(); openRoleModal(user); }}
                       onMouseDown={(e) => e.stopPropagation()}
-                      title="Réinitialiser mot de passe"
+                      title="Assigner rôle et permissions"
                     >
-                      <KeyRound size={16} />
+                      <UserCog size={16} />
                     </Button>
                     <Button 
                       variant="ghost" 

@@ -40,10 +40,10 @@ export interface Referentials {
 }
 
 export const defaultAdminPermissions: AdminPermissions = {
-  canPoint: true,
-  canApplySanctions: true,
-  canValidateAbsences: true,
-  canManageEmployees: true,
+  canPoint: false,
+  canApplySanctions: false,
+  canValidateAbsences: false,
+  canManageEmployees: false,
 };
 
 export const defaultSettings: AppSettings = {
@@ -70,8 +70,15 @@ export async function suspendUser(id: string): Promise<void> {
   await api.put(`/admin/admins/${id}/suspend`);
 }
 
-export async function updateUserRole(id: string, role: "admin" | "employee"): Promise<void> {
-  await api.put(`/admin/admins/${id}`, { role });
+export async function updateUserRole(
+  id: string,
+  role: "admin" | "employee",
+  adminPermissions?: AdminPermissions
+): Promise<void> {
+  await api.put(`/admin/admins/${id}`, {
+    role,
+    adminPermissions,
+  });
 }
 
 export async function fetchAuditLogs(): Promise<AuditLog[]> {
