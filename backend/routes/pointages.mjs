@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
-import { requireAdmin } from "../middleware/auth.mjs";
+import { requireAdmin, requireCanPoint } from "../middleware/auth.mjs";
 import { randomUUID } from "crypto";
 
 const router = Router();
@@ -158,8 +158,8 @@ router.get("/employee/:id", requireAdmin, async (req, res, next) => {
 // QR CODE — Pointage
 // ════════════════════════════════════════════
 
-// ─── GET /api/pointages/qr/daily ─── (Admin: obtenir le QR du jour)
-router.get("/qr/daily", requireAdmin, async (req, res, next) => {
+// ─── GET /api/pointages/qr/daily ─── (Admin: obtenir le QR du jour — nécessite canPoint)
+router.get("/qr/daily", requireAdmin, requireCanPoint, async (req, res, next) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
@@ -197,8 +197,8 @@ router.get("/qr/daily", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── POST /api/pointages/qr/regenerate ─── (Admin: régénérer le QR)
-router.post("/qr/regenerate", requireAdmin, async (req, res, next) => {
+// ─── POST /api/pointages/qr/regenerate ─── (Admin: régénérer le QR — nécessite canPoint)
+router.post("/qr/regenerate", requireAdmin, requireCanPoint, async (req, res, next) => {
   try {
     const today = new Date().toISOString().split("T")[0];
 
@@ -229,6 +229,15 @@ router.post("/qr/validate", async (req, res, next) => {
     const { qrData } = req.body || {};
     if (!qrData) {
       return res.status(400).json({ message: "Données QR manquantes." });
+    }
+
+    // Si l'utilisateur est un admin, vérifier la permission canPoint
+    if (req.auth.role === "admin") {
+      const permResult = await query("SELECT admin_permissions FROM employes WHERE id = $1", [req.auth.sub]);
+      const perms = permResult.rows[0]?.admin_permissions || {};
+      if (!perms.canPoint) {
+        return res.status(403).json({ message: "Vous n'avez pas la permission de pointer." });
+      }
     }
 
     // Parser le payload QR

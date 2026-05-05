@@ -31,7 +31,8 @@ export async function initDb() {
 
   await query(`
     ALTER TABLE employes
-    ADD COLUMN IF NOT EXISTS poste VARCHAR(120);
+    ADD COLUMN IF NOT EXISTS poste VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS admin_permissions JSONB DEFAULT '{}'::jsonb;
   `);
 
   await query(`

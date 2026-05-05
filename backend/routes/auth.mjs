@@ -66,6 +66,7 @@ router.post("/login", async (req, res, next) => {
         dateFinContrat: user.date_fin_contrat,
         actif: user.actif,
         firstLogin: user.first_login,
+        adminPermissions: user.role === 'admin' ? (user.admin_permissions || {}) : undefined,
       },
     });
   } catch (err) {

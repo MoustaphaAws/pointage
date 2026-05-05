@@ -64,6 +64,7 @@ app.post("/api/auth/login", async (req, res) => {
       role: user.role,
       service: user.service,
       active: user.active,
+      adminPermissions: user.admin_permissions || undefined,
     },
   });
 });
@@ -73,7 +74,7 @@ app.use("/api/admin", requireAuth, requireSuperAdmin);
 app.get("/api/admin/admins", async (_req, res) => {
   const result = await query(
     `
-      SELECT id, first_name, last_name, email, role, service, poste, active, created_at
+      SELECT id, first_name, last_name, email, role, service, poste, active, admin_permissions, created_at
       FROM employes
       WHERE role IN ('admin', 'employee')
       ORDER BY created_at DESC
@@ -89,6 +90,7 @@ app.get("/api/admin/admins", async (_req, res) => {
       service: row.service,
       poste: row.poste || "",
       active: row.active,
+      adminPermissions: row.admin_permissions || undefined,
       createdAt: row.created_at,
     }))
   );
@@ -97,7 +99,7 @@ app.get("/api/admin/admins", async (_req, res) => {
 app.post("/api/admin/admins", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
-  const { firstName, lastName, email, role, service, poste, password } = req.body || {};
+  const { firstName, lastName, email, role, service, poste, password, adminPermissions } = req.body || {};
   if (!firstName || !lastName || !email || !service || !password) {
     return res.status(400).json({ message: "Champs obligatoires manquants." });
   }
@@ -105,11 +107,11 @@ app.post("/api/admin/admins", async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   const insert = await query(
     `
-      INSERT INTO employes (first_name, last_name, email, password_hash, role, service, poste, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-      RETURNING id, first_name, last_name, email, role, service, poste, active, created_at
+      INSERT INTO employes (first_name, last_name, email, password_hash, role, service, poste, active, admin_permissions)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8::jsonb)
+      RETURNING id, first_name, last_name, email, role, service, poste, active, admin_permissions, created_at
     `,
-    [firstName, lastName, String(email).toLowerCase(), hash, safeRole, service, poste || null]
+    [firstName, lastName, String(email).toLowerCase(), hash, safeRole, service, poste || null, adminPermissions ? JSON.stringify(adminPermissions) : '{}']
   );
   const created = insert.rows[0];
 
@@ -130,6 +132,7 @@ app.post("/api/admin/admins", async (req, res) => {
     service: created.service,
     poste: created.poste || "",
     active: created.active,
+    adminPermissions: created.admin_permissions || undefined,
     createdAt: created.created_at,
   });
 });
@@ -138,7 +141,7 @@ app.put("/api/admin/admins/:id", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
   const id = Number(req.params.id);
-  const { firstName, lastName, service, poste, role } = req.body || {};
+  const { firstName, lastName, service, poste, role, adminPermissions } = req.body || {};
   const safeRole = role ? (role === "admin" ? "admin" : "employee") : null;
   const update = await query(
     `
@@ -147,11 +150,12 @@ app.put("/api/admin/admins/:id", async (req, res) => {
           last_name = COALESCE($2, last_name),
           service = COALESCE($3, service),
           poste = COALESCE($4, poste),
-          role = CASE WHEN $5::text IS NULL THEN role ELSE $5 END
+          role = CASE WHEN $5::text IS NULL THEN role ELSE $5 END,
+          admin_permissions = CASE WHEN $7::jsonb IS NULL THEN admin_permissions ELSE $7::jsonb END
       WHERE id = $6 AND role IN ('admin', 'employee')
       RETURNING *
     `,
-    [firstName || null, lastName || null, service || null, poste || null, safeRole, id]
+    [firstName || null, lastName || null, service || null, poste || null, safeRole, id, adminPermissions !== undefined ? JSON.stringify(adminPermissions) : null]
   );
   if (!update.rowCount) {
     return res.status(404).json({ message: "Utilisateur introuvable." });
@@ -175,7 +179,7 @@ app.get("/api/admin/employees/:id", async (req, res) => {
 
   const employee = await query(
     `
-      SELECT id, first_name, last_name, email, role, service, poste, active, created_at
+      SELECT id, first_name, last_name, email, role, service, poste, active, admin_permissions, created_at
       FROM employes
       WHERE id = $1 AND role IN ('admin', 'employee')
       LIMIT 1
@@ -247,6 +251,7 @@ app.get("/api/admin/employees/:id", async (req, res) => {
       service: row.service,
       poste: row.poste || "",
       active: row.active,
+      adminPermissions: row.admin_permissions || undefined,
       createdAt: row.created_at,
     },
     stats: {

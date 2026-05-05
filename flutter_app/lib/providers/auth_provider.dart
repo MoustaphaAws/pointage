@@ -50,6 +50,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final heureDebut = await _storage.read(key: 'user_heureDebut');
       final heureFin = await _storage.read(key: 'user_heureFin');
       final dateEmbauche = await _storage.read(key: 'user_dateEmbauche');
+      final canPoint = await _storage.read(key: 'user_canPoint');
+      final canApplySanctions = await _storage.read(key: 'user_canApplySanctions');
+      final canValidateAbsences = await _storage.read(key: 'user_canValidateAbsences');
+      final canManageEmployees = await _storage.read(key: 'user_canManageEmployees');
 
       if (token != null && firstName != null) {
         final user = Employee(
@@ -66,6 +70,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
           heureDebut: heureDebut ?? '08:00',
           heureFin: heureFin ?? '17:00',
           dateEmbauche: dateEmbauche ?? '',
+          adminPermissions: AdminPermissions(
+            canPoint: canPoint != 'false',
+            canApplySanctions: canApplySanctions != 'false',
+            canValidateAbsences: canValidateAbsences != 'false',
+            canManageEmployees: canManageEmployees != 'false',
+          ),
         );
         state = state.copyWith(user: user, token: token, isLoading: false);
       } else {
@@ -101,6 +111,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.write(key: 'user_heureDebut', value: user.heureDebut);
       await _storage.write(key: 'user_heureFin', value: user.heureFin);
       await _storage.write(key: 'user_dateEmbauche', value: user.dateEmbauche);
+      await _storage.write(key: 'user_canPoint', value: user.adminPermissions.canPoint.toString());
+      await _storage.write(
+        key: 'user_canApplySanctions',
+        value: user.adminPermissions.canApplySanctions.toString(),
+      );
+      await _storage.write(
+        key: 'user_canValidateAbsences',
+        value: user.adminPermissions.canValidateAbsences.toString(),
+      );
+      await _storage.write(
+        key: 'user_canManageEmployees',
+        value: user.adminPermissions.canManageEmployees.toString(),
+      );
 
       state = state.copyWith(user: user, token: token, isLoading: false);
     } catch (e) {

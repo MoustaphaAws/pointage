@@ -30,6 +30,8 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canValidateAbsences = currentUser?.adminPermissions.canValidateAbsences ?? true;
     final allAbsencesAsync = ref.watch(allAbsencesProvider);
 
     return Scaffold(
@@ -127,8 +129,8 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (_, i) => _PendingAbsenceCard(
                           absence: pending[i],
-                          onApprove: () => _approveAbsence(pending[i]),
-                          onReject: () => _showRejectDialog(pending[i]),
+                          onApprove: canValidateAbsences ? () => _approveAbsence(pending[i]) : null,
+                          onReject: canValidateAbsences ? () => _showRejectDialog(pending[i]) : null,
                         ),
                       ),
                     ),
@@ -321,8 +323,8 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
 // ════════════════════════════════════════════════════════════
 class _PendingAbsenceCard extends StatelessWidget {
   final Absence absence;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
 
   const _PendingAbsenceCard({
     required this.absence,

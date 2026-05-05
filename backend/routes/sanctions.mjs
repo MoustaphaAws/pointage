@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
-import { requireAdmin } from "../middleware/auth.mjs";
+import { requireAdmin, requireCanApplySanctions } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
@@ -89,8 +89,8 @@ router.get("/employee/:id", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── PUT /api/sanctions/:id/traiter ─── (Admin)
-router.put("/:id/traiter", requireAdmin, async (req, res, next) => {
+// ─── PUT /api/sanctions/:id/traiter ─── (Admin — nécessite canApplySanctions)
+router.put("/:id/traiter", requireAdmin, requireCanApplySanctions, async (req, res, next) => {
   try {
     const inScope = await assertAdminScopeBySanction(req, req.params.id);
     if (!inScope) {
@@ -129,7 +129,7 @@ router.put("/:id/traiter", requireAdmin, async (req, res, next) => {
 // GÉNÉRATION AUTOMATIQUE DES SANCTIONS
 // Appelé manuellement ou par cron en production
 // ════════════════════════════════════════════
-router.post("/generate", requireAdmin, async (req, res, next) => {
+router.post("/generate", requireAdmin, requireCanApplySanctions, async (req, res, next) => {
   try {
     const moisRef = new Date();
     moisRef.setDate(1);

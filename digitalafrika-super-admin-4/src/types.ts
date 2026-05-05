@@ -1,5 +1,12 @@
 export type UserRole = 'employee' | 'admin' | 'superadmin';
 
+export interface AdminPermissions {
+  canPoint: boolean;
+  canApplySanctions: boolean;
+  canValidateAbsences: boolean;
+  canManageEmployees: boolean;
+}
+
 export interface User {
   id: string;
   firstName: string;
@@ -9,6 +16,7 @@ export interface User {
   service: string;
   poste?: string;
   active: boolean;
+  adminPermissions?: AdminPermissions;
   createdAt?: string;
 }
 

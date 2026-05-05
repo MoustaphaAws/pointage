@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS employes (
     updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
     reset_token      VARCHAR(255),
     reset_token_expires TIMESTAMP,
+    admin_permissions JSONB DEFAULT '{}'::jsonb,
     created_by       UUID REFERENCES employes(id),
     CONSTRAINT chk_dates CHECK (date_fin_contrat IS NULL OR date_fin_contrat >= date_embauche),
     CONSTRAINT chk_horaires CHECK (heure_fin > heure_debut)

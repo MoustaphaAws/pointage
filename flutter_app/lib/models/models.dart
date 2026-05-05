@@ -4,6 +4,37 @@
 // ============================================================
 
 // ─── Employee ───
+class AdminPermissions {
+  final bool canPoint;
+  final bool canApplySanctions;
+  final bool canValidateAbsences;
+  final bool canManageEmployees;
+
+  const AdminPermissions({
+    this.canPoint = true,
+    this.canApplySanctions = true,
+    this.canValidateAbsences = true,
+    this.canManageEmployees = true,
+  });
+
+  factory AdminPermissions.fromJson(dynamic json) {
+    if (json is! Map<String, dynamic>) return const AdminPermissions();
+    return AdminPermissions(
+      canPoint: json['canPoint'] ?? true,
+      canApplySanctions: json['canApplySanctions'] ?? true,
+      canValidateAbsences: json['canValidateAbsences'] ?? true,
+      canManageEmployees: json['canManageEmployees'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'canPoint': canPoint,
+        'canApplySanctions': canApplySanctions,
+        'canValidateAbsences': canValidateAbsences,
+        'canManageEmployees': canManageEmployees,
+      };
+}
+
 class Employee {
   final String id;
   final String matricule;
@@ -27,6 +58,7 @@ class Employee {
   final String dateEmbauche;
   final String? dateFinContrat;
   final String? createdAt;
+  final AdminPermissions adminPermissions;
 
   Employee({
     required this.id,
@@ -51,6 +83,7 @@ class Employee {
     required this.dateEmbauche,
     this.dateFinContrat,
     this.createdAt,
+    this.adminPermissions = const AdminPermissions(),
   });
 
   factory Employee.fromJson(Map<String, dynamic> json) => Employee(
@@ -76,6 +109,9 @@ class Employee {
         dateEmbauche: json['dateEmbauche'] ?? '',
         dateFinContrat: json['dateFinContrat'],
         createdAt: json['createdAt'],
+        adminPermissions: AdminPermissions.fromJson(
+          json['adminPermissions'] ?? json['permissions'] ?? json['adminRights'],
+        ),
       );
 
   Map<String, dynamic> toJson() => {
@@ -100,6 +136,7 @@ class Employee {
         'heureFin': heureFin,
         'dateEmbauche': dateEmbauche,
         'dateFinContrat': dateFinContrat,
+        'adminPermissions': adminPermissions.toJson(),
       };
 
   bool get isAdmin => role == 'admin' || role == 'superadmin';

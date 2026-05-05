@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS employes (
   poste VARCHAR(120),
   active BOOLEAN NOT NULL DEFAULT true,
   badge_uid VARCHAR(80),
+  admin_permissions JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

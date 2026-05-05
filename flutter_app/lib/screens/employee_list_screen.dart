@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
+import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
 import 'employee_detail_screen.dart';
@@ -20,6 +21,8 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canManageEmployees = currentUser?.adminPermissions.canManageEmployees ?? true;
     final employeesAsync = ref.watch(allEmployeesProvider);
     final servicesAsync = ref.watch(servicesProvider);
 
@@ -147,19 +150,21 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erreur: $err')),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'add_employee',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const EmployeeFormScreen(),
-            ),
-          );
-        },
-        backgroundColor: AppColors.violet600,
-        child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
-      ),
+      floatingActionButton: canManageEmployees
+          ? FloatingActionButton(
+              heroTag: 'add_employee',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EmployeeFormScreen(),
+                  ),
+                );
+              },
+              backgroundColor: AppColors.violet600,
+              child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+            )
+          : null,
     );
   }
 

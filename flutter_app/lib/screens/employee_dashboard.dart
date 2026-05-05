@@ -25,6 +25,7 @@ class _EmployeeDashboardState extends ConsumerState<EmployeeDashboard> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final canPoint = user?.role != 'admin' ? true : (user?.adminPermissions.canPoint ?? true);
     final statsAsync = ref.watch(monthStatsProvider);
     final pointageAsync = ref.watch(todayPointageProvider);
 
@@ -43,7 +44,7 @@ class _EmployeeDashboardState extends ConsumerState<EmployeeDashboard> {
             isClockedIn: pointageAsync.value?.checkIn != null && pointageAsync.value?.checkOut == null,
           ),
           const SizedBox(height: 14),
-          const _ClockInCard(),
+          _ClockInCard(canPoint: canPoint),
           const SizedBox(height: 14),
           Row(
             children: <Widget>[
@@ -212,7 +213,8 @@ class _HelloCard extends StatelessWidget {
 }
 
 class _ClockInCard extends StatelessWidget {
-  const _ClockInCard();
+  final bool canPoint;
+  const _ClockInCard({required this.canPoint});
 
   @override
   Widget build(BuildContext context) {
@@ -248,12 +250,14 @@ class _ClockInCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () {
+                onPressed: canPoint
+                    ? () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const QrScannerScreen()),
                   );
-                },
+                }
+                    : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.violet700,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -263,6 +267,14 @@ class _ClockInCard extends StatelessWidget {
                 label: const Text('Scanner pour pointer', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ),
             ),
+            if (!canPoint) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Le super admin a desactive le pointage pour votre compte.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.rose500, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
           ],
         ),
       ),

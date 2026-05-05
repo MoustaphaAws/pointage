@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Card, Button, Badge } from '../components/ui/LayoutComponents';
-import { User } from '../types';
+import { AdminPermissions, User } from '../types';
 import { Plus, Search, Filter, Edit2, ShieldOff, Trash2, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createUser, fetchReferentials, fetchUsers, resetUserPassword, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
+import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, resetUserPassword, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
 import { useNavigate } from 'react-router-dom';
 
 type UserFormState = {
@@ -15,6 +15,7 @@ type UserFormState = {
   poste: string;
   id: string;
   password: string;
+  adminPermissions: AdminPermissions;
 };
 
 const emptyForm: UserFormState = {
@@ -26,6 +27,7 @@ const emptyForm: UserFormState = {
   poste: '',
   id: '',
   password: '',
+  adminPermissions: defaultAdminPermissions,
 };
 
 export default function UsersPage() {
@@ -103,6 +105,7 @@ export default function UsersPage() {
       poste: user.poste || '',
       id: user.id || '',
       password: '',
+      adminPermissions: user.adminPermissions || defaultAdminPermissions,
     });
   };
 
@@ -112,7 +115,10 @@ export default function UsersPage() {
       return;
     }
     try {
-      const created = await createUser(form);
+      const created = await createUser({
+        ...form,
+        adminPermissions: form.role === 'admin' ? form.adminPermissions : undefined,
+      });
       setUsers((prev) => [created, ...prev]);
       toast.success('Compte créé avec succès');
       resetForm();
@@ -130,11 +136,20 @@ export default function UsersPage() {
         role: form.role,
         service: form.service,
         poste: form.poste,
+        adminPermissions: form.role === 'admin' ? form.adminPermissions : undefined,
       });
       setUsers((prev) =>
         prev.map((u) =>
           u.id === editingUserId
-            ? { ...u, firstName: form.firstName, lastName: form.lastName, role: form.role, service: form.service, poste: form.poste }
+            ? {
+                ...u,
+                firstName: form.firstName,
+                lastName: form.lastName,
+                role: form.role,
+                service: form.service,
+                poste: form.poste,
+                adminPermissions: form.role === 'admin' ? form.adminPermissions : undefined,
+              }
             : u
         )
       );
@@ -192,6 +207,63 @@ export default function UsersPage() {
               <option value="employee">Employé</option>
               <option value="admin">Admin RH</option>
             </select>
+            {form.role === 'admin' && (
+              <div className="md:col-span-2 rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-xs font-semibold text-slate-700 uppercase">Permissions admin</p>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.adminPermissions.canPoint}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        adminPermissions: { ...prev.adminPermissions, canPoint: e.target.checked },
+                      }))
+                    }
+                  />
+                  Autoriser le pointage
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.adminPermissions.canApplySanctions}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        adminPermissions: { ...prev.adminPermissions, canApplySanctions: e.target.checked },
+                      }))
+                    }
+                  />
+                  Autoriser l'application de sanctions
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.adminPermissions.canValidateAbsences}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        adminPermissions: { ...prev.adminPermissions, canValidateAbsences: e.target.checked },
+                      }))
+                    }
+                  />
+                  Autoriser l'approbation/rejet des absences
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.adminPermissions.canManageEmployees}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        adminPermissions: { ...prev.adminPermissions, canManageEmployees: e.target.checked },
+                      }))
+                    }
+                  />
+                  Autoriser la creation/suppression d'employes
+                </label>
+              </div>
+            )}
             {!editingUserId && (
               <input placeholder="Mot de passe initial" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="px-3 py-2 bg-slate-50 rounded-md text-sm md:col-span-2" />
             )}

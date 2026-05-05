@@ -57,3 +57,56 @@ export function requireSuperAdmin(req, res, next) {
   }
   next();
 }
+
+// ─── Middlewares de permissions granulaires pour les admins ───
+// Les superadmins passent toujours. Les admins sont vérifiés via admin_permissions en BDD.
+
+async function checkAdminPermission(req, res, permissionKey) {
+  // Superadmin → toujours autorisé
+  if (req.auth.role === "superadmin") return true;
+
+  // Seul un admin peut avoir des permissions
+  if (req.auth.role !== "admin") {
+    res.status(403).json({ message: "Accès réservé aux administrateurs." });
+    return false;
+  }
+
+  // Charger les permissions depuis la BDD
+  const { query } = await import("../db.mjs");
+  const result = await query("SELECT admin_permissions FROM employes WHERE id = $1", [req.auth.sub]);
+  if (!result.rowCount) {
+    res.status(403).json({ message: "Utilisateur introuvable." });
+    return false;
+  }
+
+  const permissions = result.rows[0].admin_permissions || {};
+  if (!permissions[permissionKey]) {
+    res.status(403).json({ message: "Vous n'avez pas la permission pour cette action." });
+    return false;
+  }
+  return true;
+}
+
+export function requireCanPoint(req, res, next) {
+  checkAdminPermission(req, res, "canPoint").then((ok) => ok && next()).catch(() =>
+    res.status(500).json({ message: "Erreur de vérification des permissions." })
+  );
+}
+
+export function requireCanApplySanctions(req, res, next) {
+  checkAdminPermission(req, res, "canApplySanctions").then((ok) => ok && next()).catch(() =>
+    res.status(500).json({ message: "Erreur de vérification des permissions." })
+  );
+}
+
+export function requireCanValidateAbsences(req, res, next) {
+  checkAdminPermission(req, res, "canValidateAbsences").then((ok) => ok && next()).catch(() =>
+    res.status(500).json({ message: "Erreur de vérification des permissions." })
+  );
+}
+
+export function requireCanManageEmployees(req, res, next) {
+  checkAdminPermission(req, res, "canManageEmployees").then((ok) => ok && next()).catch(() =>
+    res.status(500).json({ message: "Erreur de vérification des permissions." })
+  );
+}

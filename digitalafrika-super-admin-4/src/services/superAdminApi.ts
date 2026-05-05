@@ -1,5 +1,5 @@
 import api from "./api";
-import { ActivityFeedItem, AuditLog, User } from "../types";
+import { ActivityFeedItem, AdminPermissions, AuditLog, User } from "../types";
 
 export interface LoginPayload {
   email: string;
@@ -38,6 +38,13 @@ export interface Referentials {
   services: string[];
   postes: string[];
 }
+
+export const defaultAdminPermissions: AdminPermissions = {
+  canPoint: true,
+  canApplySanctions: true,
+  canValidateAbsences: true,
+  canManageEmployees: true,
+};
 
 export const defaultSettings: AppSettings = {
   lateThreshold: 3,
@@ -131,6 +138,7 @@ export async function createUser(payload: {
   service: string;
   poste?: string;
   password: string;
+  adminPermissions?: AdminPermissions;
 }): Promise<User> {
   const response = await api.post("/admin/admins", payload);
   return response.data;
@@ -142,6 +150,7 @@ export async function updateUser(id: string, payload: {
   role?: "admin" | "employee";
   service?: string;
   poste?: string;
+  adminPermissions?: AdminPermissions;
 }): Promise<void> {
   await api.put(`/admin/admins/${id}`, payload);
 }

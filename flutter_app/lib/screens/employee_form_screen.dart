@@ -77,6 +77,18 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   }
 
   Future<void> _save() async {
+    final currentUser = ref.read(currentUserProvider);
+    final canManageEmployees = currentUser?.adminPermissions.canManageEmployees ?? true;
+    if (!canManageEmployees) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vous n avez pas le droit de gerer les employes'),
+          backgroundColor: AppColors.rose500,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_selectedServiceId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -13,6 +13,14 @@ const pool = process.env.DATABASE_URL
 
 export const query = (text, params = []) => pool.query(text, params);
 
+export async function runMigrations() {
+  await query(`
+    ALTER TABLE employes
+    ADD COLUMN IF NOT EXISTS admin_permissions JSONB DEFAULT '{}'::jsonb
+  `);
+  console.log("✅ Migrations OK");
+}
+
 export async function testConnection() {
   const client = await pool.connect();
   try {
@@ -21,6 +29,7 @@ export async function testConnection() {
   } finally {
     client.release();
   }
+  await runMigrations();
 }
 
 export default pool;

@@ -13,13 +13,15 @@ class EmployeeDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canManageEmployees = currentUser?.adminPermissions.canManageEmployees ?? true;
     return Scaffold(
       backgroundColor: AppColors.slate50,
       body: DefaultTabController(
         length: 3,
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            _buildSliverAppBar(context, ref),
+            _buildSliverAppBar(context, ref, canManageEmployees),
           ],
           body: TabBarView(
             children: [
@@ -30,23 +32,25 @@ class EmployeeDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'edit_employee',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => EmployeeFormScreen(employee: employee),
-            ),
-          );
-        },
-        backgroundColor: AppColors.violet600,
-        child: const Icon(Icons.edit_rounded, color: Colors.white),
-      ),
+      floatingActionButton: canManageEmployees
+          ? FloatingActionButton(
+              heroTag: 'edit_employee',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EmployeeFormScreen(employee: employee),
+                  ),
+                );
+              },
+              backgroundColor: AppColors.violet600,
+              child: const Icon(Icons.edit_rounded, color: Colors.white),
+            )
+          : null,
     );
   }
 
-  SliverAppBar _buildSliverAppBar(BuildContext context, WidgetRef ref) {
+  SliverAppBar _buildSliverAppBar(BuildContext context, WidgetRef ref, bool canManageEmployees) {
     return SliverAppBar(
       expandedHeight: 340,
       pinned: true,
@@ -56,37 +60,39 @@ class EmployeeDetailScreen extends ConsumerWidget {
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-          color: Colors.white,
-          onSelected: (val) => _handleAction(context, ref, val),
-          itemBuilder: (_) => [
-            if (employee.actif)
-              const PopupMenuItem(
-                value: 'deactivate',
-                child: Row(
-                  children: [
-                    Icon(Icons.block_rounded, color: AppColors.rose500, size: 18),
-                    SizedBox(width: 8),
-                    Text('Désactiver'),
-                  ],
-                ),
-              )
-            else
-              const PopupMenuItem(
-                value: 'activate',
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_rounded, color: AppColors.emerald500, size: 18),
-                    SizedBox(width: 8),
-                    Text('Réactiver'),
-                  ],
-                ),
+      actions: canManageEmployees
+          ? [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                color: Colors.white,
+                onSelected: (val) => _handleAction(context, ref, val),
+                itemBuilder: (_) => [
+                  if (employee.actif)
+                    const PopupMenuItem(
+                      value: 'deactivate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.block_rounded, color: AppColors.rose500, size: 18),
+                          SizedBox(width: 8),
+                          Text('Désactiver'),
+                        ],
+                      ),
+                    )
+                  else
+                    const PopupMenuItem(
+                      value: 'activate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: AppColors.emerald500, size: 18),
+                          SizedBox(width: 8),
+                          Text('Réactiver'),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
-      ],
+            ]
+          : [],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: const BoxDecoration(

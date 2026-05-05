@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/models.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import 'employee_dashboard.dart';
@@ -26,10 +27,14 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final isAdmin = user?.isAdmin ?? false;
+    final permissions = user?.adminPermissions;
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final tabs = isAdmin ? _adminTabs : _employeeTabs;
+    final tabs = isAdmin ? _adminTabs(permissions) : _employeeTabs;
+    if (_currentIndex >= tabs.length) {
+      _currentIndex = 0;
+    }
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -205,33 +210,39 @@ class _MainShellState extends ConsumerState<MainShell> {
         ),
       ];
 
-  List<_TabConfig> get _adminTabs => [
-        _TabConfig(
-          icon: Icons.dashboard_rounded,
-          label: 'Dashboard',
-          screen: const AdminDashboard(),
-        ),
+  List<_TabConfig> _adminTabs(AdminPermissions? permissions) {
+    final tabs = <_TabConfig>[
+      _TabConfig(
+        icon: Icons.dashboard_rounded,
+        label: 'Dashboard',
+        screen: const AdminDashboard(),
+      ),
+      if (permissions?.canManageEmployees ?? true)
         _TabConfig(
           icon: Icons.people_rounded,
           label: 'Employés',
           screen: const EmployeeListScreen(),
         ),
+      if (permissions?.canValidateAbsences ?? true)
         _TabConfig(
           icon: Icons.check_circle_rounded,
           label: 'Validation',
           screen: const AbsenceValidationScreen(),
         ),
+      if (permissions?.canApplySanctions ?? true)
         _TabConfig(
           icon: Icons.shield_rounded,
           label: 'Alertes',
           screen: const AlertesDisciplinairesScreen(),
         ),
-        _TabConfig(
-          icon: Icons.insert_chart_rounded,
-          label: 'Rapports',
-          screen: const RapportsScreen(),
-        ),
-      ];
+      _TabConfig(
+        icon: Icons.insert_chart_rounded,
+        label: 'Rapports',
+        screen: const RapportsScreen(),
+      ),
+    ];
+    return tabs;
+  }
 }
 
 class _TabConfig {

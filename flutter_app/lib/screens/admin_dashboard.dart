@@ -13,6 +13,8 @@ class AdminDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canValidateAbsences = currentUser?.adminPermissions.canValidateAbsences ?? true;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sectionTitleColor = isDark ? AppColors.darkTextPrimary : AppColors.slate800;
     final sectionTextColor = isDark ? AppColors.darkTextSecondary : AppColors.slate500;
@@ -479,10 +481,10 @@ class AdminDashboard extends ConsumerWidget {
                             absence: a,
                             showEmployee: true,
                             onApprove: a.isPending
-                                ? () => _handleValidation(ref, a.id, 'validé')
+                                ? (canValidateAbsences ? () => _handleValidation(ref, a.id, 'validé') : null)
                                 : null,
                             onReject: a.isPending
-                                ? () => _handleValidation(ref, a.id, 'rejeté')
+                                ? (canValidateAbsences ? () => _handleValidation(ref, a.id, 'rejeté') : null)
                                 : null,
                           ),
                         );

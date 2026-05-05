@@ -108,6 +108,22 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canPoint = currentUser?.role != 'admin' ? true : (currentUser?.adminPermissions.canPoint ?? true);
+    if (!canPoint) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Scanner QR')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Le super admin a desactive le pointage pour ce compte admin.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(

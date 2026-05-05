@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { query } from "../db.mjs";
-import { requireAdmin } from "../middleware/auth.mjs";
+import { requireAdmin, requireCanManageEmployees } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
@@ -87,8 +87,8 @@ router.get("/:id", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── POST /api/employees ─── (Admin: créer)
-router.post("/", requireAdmin, async (req, res, next) => {
+// ─── POST /api/employees ─── (Admin: créer — nécessite canManageEmployees)
+router.post("/", requireAdmin, requireCanManageEmployees, async (req, res, next) => {
   try {
     const { firstName, lastName, email, phone, serviceId, poste, typeContrat, dateEmbauche, dateFinContrat, heureDebut, heureFin, uidBadge } = req.body || {};
     if (req.auth.role === "admin" && serviceId !== req.auth.serviceId) {
@@ -214,8 +214,8 @@ router.put("/:id", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── PUT /api/employees/:id/deactivate ───
-router.put("/:id/deactivate", requireAdmin, async (req, res, next) => {
+// ─── PUT /api/employees/:id/deactivate ─── (nécessite canManageEmployees)
+router.put("/:id/deactivate", requireAdmin, requireCanManageEmployees, async (req, res, next) => {
   try {
     const inScope = await assertAdminScope(req, req.params.id);
     if (!inScope) {
@@ -245,8 +245,8 @@ router.put("/:id/deactivate", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── PUT /api/employees/:id/activate ───
-router.put("/:id/activate", requireAdmin, async (req, res, next) => {
+// ─── PUT /api/employees/:id/activate ─── (nécessite canManageEmployees)
+router.put("/:id/activate", requireAdmin, requireCanManageEmployees, async (req, res, next) => {
   try {
     const inScope = await assertAdminScope(req, req.params.id);
     if (!inScope) {

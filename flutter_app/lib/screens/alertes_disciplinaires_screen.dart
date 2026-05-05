@@ -10,6 +10,8 @@ class AlertesDisciplinairesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
+    final canApplySanctions = currentUser?.adminPermissions.canApplySanctions ?? true;
     final sanctionsAsync = ref.watch(allSanctionsProvider);
 
     return Scaffold(
@@ -110,7 +112,7 @@ class AlertesDisciplinairesScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _AlerteCard(
                           sanction: s,
-                          onTraiter: () => _traiterAlerte(context, ref, s),
+                          onTraiter: canApplySanctions ? () => _traiterAlerte(context, ref, s) : null,
                         ),
                       )),
                 ],
@@ -352,7 +354,7 @@ class _SectionHeader extends StatelessWidget {
 // ════════════════════════════════════════════════════════════
 class _AlerteCard extends StatelessWidget {
   final Sanction sanction;
-  final VoidCallback onTraiter;
+  final VoidCallback? onTraiter;
   const _AlerteCard({required this.sanction, required this.onTraiter});
 
   @override

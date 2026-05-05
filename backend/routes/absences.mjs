@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.mjs";
-import { requireAdmin } from "../middleware/auth.mjs";
+import { requireAdmin, requireCanValidateAbsences } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
 
 const router = Router();
@@ -126,8 +126,8 @@ router.get("/all", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── PUT /api/absences/:id/approve ─── (Admin)
-router.put("/:id/approve", requireAdmin, async (req, res, next) => {
+// ─── PUT /api/absences/:id/approve ─── (Admin — nécessite canValidateAbsences)
+router.put("/:id/approve", requireAdmin, requireCanValidateAbsences, async (req, res, next) => {
   try {
     const inScope = await assertAdminScopeByAbsence(req, req.params.id);
     if (!inScope) {
@@ -169,8 +169,8 @@ router.put("/:id/approve", requireAdmin, async (req, res, next) => {
   }
 });
 
-// ─── PUT /api/absences/:id/reject ─── (Admin)
-router.put("/:id/reject", requireAdmin, async (req, res, next) => {
+// ─── PUT /api/absences/:id/reject ─── (Admin — nécessite canValidateAbsences)
+router.put("/:id/reject", requireAdmin, requireCanValidateAbsences, async (req, res, next) => {
   try {
     const inScope = await assertAdminScopeByAbsence(req, req.params.id);
     if (!inScope) {
