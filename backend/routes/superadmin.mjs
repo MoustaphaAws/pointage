@@ -21,7 +21,7 @@ router.get("/admins", async (_req, res, next) => {
     const result = await query(
       `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
               s.nom AS service, e.poste, e.actif AS active,
-              e.uid_badge AS badge_uid, e.created_at
+              e.uid_badge AS badge_uid, e.admin_permissions, e.created_at
        FROM employes e
        JOIN services s ON s.id = e.service_id
        WHERE e.role IN ('employee', 'admin')
@@ -36,6 +36,7 @@ router.get("/admins", async (_req, res, next) => {
       service: r.service,
       poste: r.poste || "",
       active: r.active,
+      adminPermissions: r.role === "admin" ? (r.admin_permissions || {}) : undefined,
       badgeUid: r.badge_uid || "-",
       createdAt: r.created_at,
     })));
@@ -48,7 +49,7 @@ router.get("/admins", async (_req, res, next) => {
 router.post("/admins", async (req, res, next) => {
   try {
     const actor = await getActor(req);
-    const { firstName, lastName, email, role, service, poste, badgeUid, password } = req.body || {};
+    const { firstName, lastName, email, role, service, poste, badgeUid, password, adminPermissions } = req.body || {};
     if (!firstName || !lastName || !email || !service || !password) {
       return res.status(400).json({ message: "Champs obligatoires manquants." });
     }
@@ -61,6 +62,7 @@ router.post("/admins", async (req, res, next) => {
     const serviceId = srvResult.rows[0].id;
 
     const safeRole = role === "admin" ? "admin" : "employee";
+    const permissionsPayload = safeRole === "admin" ? (adminPermissions || {}) : {};
     const hash = await bcrypt.hash(password, 10);
 
     // Générer le matricule
@@ -68,10 +70,10 @@ router.post("/admins", async (req, res, next) => {
     const matricule = matResult.rows[0].mat;
 
     const insert = await query(
-      `INSERT INTO employes (matricule, first_name, last_name, email, password_hash, role, service_id, poste, uid_badge, actif, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10)
-       RETURNING id, first_name, last_name, email, role, poste, actif, uid_badge, created_at`,
-      [matricule, firstName, lastName, String(email).toLowerCase(), hash, safeRole, serviceId, poste || null, badgeUid || null, req.auth.sub]
+      `INSERT INTO employes (matricule, first_name, last_name, email, password_hash, role, service_id, poste, uid_badge, actif, admin_permissions, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10::jsonb, $11)
+       RETURNING id, first_name, last_name, email, role, poste, actif, uid_badge, admin_permissions, created_at`,
+      [matricule, firstName, lastName, String(email).toLowerCase(), hash, safeRole, serviceId, poste || null, badgeUid || null, JSON.stringify(permissionsPayload), req.auth.sub]
     );
     const created = insert.rows[0];
 
@@ -99,6 +101,7 @@ router.post("/admins", async (req, res, next) => {
       service,
       poste: created.poste || "",
       active: created.actif,
+      adminPermissions: created.role === "admin" ? (created.admin_permissions || {}) : undefined,
       badgeUid: created.uid_badge || "-",
       createdAt: created.created_at,
     });
@@ -114,7 +117,7 @@ router.post("/admins", async (req, res, next) => {
 router.put("/admins/:id", async (req, res, next) => {
   try {
     const actor = await getActor(req);
-    const { firstName, lastName, service, poste, role, badgeUid } = req.body || {};
+    const { firstName, lastName, service, poste, role, badgeUid, adminPermissions } = req.body || {};
     const safeRole = role ? (role === "admin" ? "admin" : "employee") : null;
 
     // Si service est fourni, convertir nom → service_id
@@ -134,10 +137,24 @@ router.put("/admins/:id", async (req, res, next) => {
          service_id = COALESCE($3, service_id),
          poste = COALESCE($4, poste),
          role = CASE WHEN $5::text IS NULL THEN role ELSE $5::role_enum END,
-         uid_badge = COALESCE($6, uid_badge)
+         uid_badge = COALESCE($6, uid_badge),
+         admin_permissions = CASE
+           WHEN $8::jsonb IS NULL THEN admin_permissions
+           WHEN COALESCE($5::text, role::text) = 'admin' THEN $8::jsonb
+           ELSE '{}'::jsonb
+         END
        WHERE id = $7 AND role IN ('admin', 'employee')
        RETURNING *`,
-      [firstName || null, lastName || null, serviceId, poste || null, safeRole, badgeUid || null, req.params.id]
+      [
+        firstName || null,
+        lastName || null,
+        serviceId,
+        poste || null,
+        safeRole,
+        badgeUid || null,
+        req.params.id,
+        adminPermissions !== undefined ? JSON.stringify(adminPermissions) : null,
+      ]
     );
     if (!update.rowCount) {
       return res.status(404).json({ message: "Utilisateur introuvable." });

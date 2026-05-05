@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Button, Badge } from '../components/ui/LayoutComponents';
 import { AdminPermissions, User } from '../types';
-import { Plus, Search, Filter, Edit2, ShieldOff, Trash2, UserCog } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, ShieldCheck, ShieldOff, Trash2, UserCog } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, suspendUser, updateUser, updateUserRole } from '../services/superAdminApi';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +18,11 @@ type UserFormState = {
   adminPermissions: AdminPermissions;
 };
 
+const clonePermissions = (permissions?: Partial<AdminPermissions>): AdminPermissions => ({
+  ...defaultAdminPermissions,
+  ...(permissions || {}),
+});
+
 const emptyForm: UserFormState = {
   firstName: '',
   lastName: '',
@@ -27,7 +32,7 @@ const emptyForm: UserFormState = {
   poste: '',
   id: '',
   password: '',
-  adminPermissions: defaultAdminPermissions,
+  adminPermissions: clonePermissions(),
 };
 
 export default function UsersPage() {
@@ -41,7 +46,7 @@ export default function UsersPage() {
   const [roleModalUser, setRoleModalUser] = useState<User | null>(null);
   const [roleForm, setRoleForm] = useState<{ role: 'admin' | 'employee'; adminPermissions: AdminPermissions }>({
     role: 'employee',
-    adminPermissions: defaultAdminPermissions,
+    adminPermissions: clonePermissions(),
   });
   const [services, setServices] = useState<string[]>([]);
   const [postes, setPostes] = useState<string[]>([]);
@@ -73,7 +78,7 @@ export default function UsersPage() {
     const current = users.find((u) => u.id === id);
     if (!current) return;
     const newRole = current.role === 'admin' ? 'employee' : 'admin';
-    const nextPermissions = newRole === 'admin' ? (current.adminPermissions || defaultAdminPermissions) : undefined;
+    const nextPermissions = newRole === 'admin' ? clonePermissions(current.adminPermissions) : undefined;
 
     try {
       await updateUserRole(id, newRole, nextPermissions);
@@ -94,7 +99,7 @@ export default function UsersPage() {
   );
 
   const resetForm = () => {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, adminPermissions: clonePermissions() });
     setShowCreateForm(false);
     setEditingUserId(null);
   };
@@ -111,7 +116,7 @@ export default function UsersPage() {
       poste: user.poste || '',
       id: user.id || '',
       password: '',
-      adminPermissions: user.adminPermissions || defaultAdminPermissions,
+      adminPermissions: clonePermissions(user.adminPermissions),
     });
   };
 
@@ -170,7 +175,7 @@ export default function UsersPage() {
     setRoleModalUser(user);
     setRoleForm({
       role: user.role === 'admin' ? 'admin' : 'employee',
-      adminPermissions: user.adminPermissions || defaultAdminPermissions,
+      adminPermissions: clonePermissions(user.adminPermissions),
     });
   };
 
@@ -214,7 +219,7 @@ export default function UsersPage() {
           <h2 className="text-2xl font-bold text-slate-800">Gestion Absolue</h2>
           <p className="text-xs text-slate-500 font-medium uppercase mt-1">Contrôle total des comptes (Employés & Admins RH)</p>
         </div>
-        <Button className="flex items-center gap-2" onClick={() => { setShowCreateForm(true); setEditingUserId(null); setForm(emptyForm); }}>
+        <Button className="flex items-center gap-2" onClick={() => { setShowCreateForm(true); setEditingUserId(null); setForm({ ...emptyForm, adminPermissions: clonePermissions() }); }}>
           <Plus size={16} />
           Créer un profil
         </Button>
@@ -510,7 +515,11 @@ export default function UsersPage() {
                       onMouseDown={(e) => e.stopPropagation()}
                       title={user.role === 'admin' ? "Rétrograder en Employé (permissions retirées)" : "Promouvoir en Admin RH (permissions à définir)"}
                     >
-                      <ShieldOff size={16} />
+                      {user.role === 'admin' ? (
+                        <ShieldOff size={16} className="text-rose-500" />
+                      ) : (
+                        <ShieldCheck size={16} className="text-emerald-600" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
