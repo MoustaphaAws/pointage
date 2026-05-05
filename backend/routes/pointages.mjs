@@ -234,8 +234,11 @@ router.post("/qr/validate", async (req, res, next) => {
     // Si l'utilisateur est un admin, vérifier la permission canPoint
     if (req.auth.role === "admin") {
       const permResult = await query("SELECT admin_permissions FROM employes WHERE id = $1", [req.auth.sub]);
-      const perms = permResult.rows[0]?.admin_permissions || {};
-      if (!perms.canPoint) {
+      const rawPerms = permResult.rows[0]?.admin_permissions;
+      const perms = rawPerms && typeof rawPerms === 'object' && Object.keys(rawPerms).length > 0
+        ? rawPerms
+        : { canPoint: true };
+      if (perms.canPoint === false) {
         return res.status(403).json({ message: "Vous n'avez pas la permission de pointer." });
       }
     }

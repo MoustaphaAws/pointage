@@ -79,8 +79,12 @@ async function checkAdminPermission(req, res, permissionKey) {
     return false;
   }
 
-  const permissions = result.rows[0].admin_permissions || {};
-  if (!permissions[permissionKey]) {
+  const rawPerms = result.rows[0].admin_permissions;
+  // Si admin_permissions est NULL ou objet vide, toutes les permissions sont accordées par défaut
+  const permissions = rawPerms && typeof rawPerms === 'object' && Object.keys(rawPerms).length > 0
+    ? rawPerms
+    : { canPoint: true, canApplySanctions: true, canValidateAbsences: true, canManageEmployees: true };
+  if (permissions[permissionKey] === false) {
     res.status(403).json({ message: "Vous n'avez pas la permission pour cette action." });
     return false;
   }
