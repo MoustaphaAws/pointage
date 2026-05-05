@@ -9,7 +9,6 @@ export interface User {
   service: string;
   poste?: string;
   active: boolean;
-  badgeUid: string;
   createdAt?: string;
 }
 

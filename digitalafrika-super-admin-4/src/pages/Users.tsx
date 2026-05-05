@@ -13,7 +13,7 @@ type UserFormState = {
   role: 'admin' | 'employee';
   service: string;
   poste: string;
-  badgeUid: string;
+  id: string;
   password: string;
 };
 
@@ -24,7 +24,7 @@ const emptyForm: UserFormState = {
   role: 'employee',
   service: '',
   poste: '',
-  badgeUid: '',
+  id: '',
   password: '',
 };
 
@@ -101,7 +101,7 @@ export default function UsersPage() {
       role: user.role === 'admin' ? 'admin' : 'employee',
       service: user.service,
       poste: user.poste || '',
-      badgeUid: user.badgeUid || '',
+      id: user.id || '',
       password: '',
     });
   };
@@ -130,12 +130,11 @@ export default function UsersPage() {
         role: form.role,
         service: form.service,
         poste: form.poste,
-        badgeUid: form.badgeUid,
       });
       setUsers((prev) =>
         prev.map((u) =>
           u.id === editingUserId
-            ? { ...u, firstName: form.firstName, lastName: form.lastName, role: form.role, service: form.service, poste: form.poste, badgeUid: form.badgeUid }
+            ? { ...u, firstName: form.firstName, lastName: form.lastName, role: form.role, service: form.service, poste: form.poste }
             : u
         )
       );
@@ -189,7 +188,6 @@ export default function UsersPage() {
                 <option key={poste} value={poste}>{poste}</option>
               ))}
             </select>
-            <input placeholder="Badge RFID" value={form.badgeUid} onChange={(e) => setForm({ ...form, badgeUid: e.target.value })} className="px-3 py-2 bg-slate-50 rounded-md text-sm" />
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'employee' })} className="px-3 py-2 bg-slate-50 rounded-md text-sm">
               <option value="employee">Employé</option>
               <option value="admin">Admin RH</option>
@@ -260,7 +258,7 @@ export default function UsersPage() {
               <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Rôle</th>
               <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Service</th>
               <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Poste</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Badge RFID</th>
+              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">ID</th>
               <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Statut</th>
               <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
             </tr>
@@ -293,7 +291,7 @@ export default function UsersPage() {
                 <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.service}</td>
                 <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.poste || '-'}</td>
                 <td className="px-6 py-4 text-xs font-mono text-slate-400 group-hover:text-slate-900 transition-colors tracking-widest">
-                  {user.badgeUid}
+                  {user.id}
                 </td>
                 <td className="px-6 py-4">
                   <Badge variant={user.active ? 'success' : 'error'}>

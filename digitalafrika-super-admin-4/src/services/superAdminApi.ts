@@ -130,7 +130,6 @@ export async function createUser(payload: {
   role: "admin" | "employee";
   service: string;
   poste?: string;
-  badgeUid?: string;
   password: string;
 }): Promise<User> {
   const response = await api.post("/admin/admins", payload);
@@ -143,7 +142,6 @@ export async function updateUser(id: string, payload: {
   role?: "admin" | "employee";
   service?: string;
   poste?: string;
-  badgeUid?: string;
 }): Promise<void> {
   await api.put(`/admin/admins/${id}`, payload);
 }
@@ -189,9 +187,54 @@ export interface EmployeeActivityItem {
   details: string;
 }
 
+export interface AbsenceItem {
+  id: string;
+  type: string;
+  dateDebut: string;
+  dateFin: string;
+  statut: string;
+  motif: string;
+  validePar: string;
+  createdAt: string;
+}
+
+export interface PointageItem {
+  id: string;
+  date: string;
+  entree: string;
+  sortie: string;
+  type: string;
+  heuresTravaillees: number;
+  heuresSup: number;
+  commentaire: string;
+}
+
+export interface SanctionItem {
+  id: string;
+  type: string;
+  motif: string;
+  dateIncident: string;
+  dateDecision: string;
+  statut: string;
+  decisionneePar: string;
+}
+
+export interface EmployeeStats {
+  totalAbsences: number;
+  totalPointages: number;
+  totalSanctions: number;
+  joursAbsence: number;
+  heuresTravaillees: string;
+  heuresSup: string;
+}
+
 export interface EmployeeDetailsResponse {
   profile: User;
+  stats: EmployeeStats;
   activity: EmployeeActivityItem[];
+  absences: AbsenceItem[];
+  pointages: PointageItem[];
+  sanctions: SanctionItem[];
 }
 
 export async function fetchEmployeeDetails(id: string): Promise<EmployeeDetailsResponse> {
@@ -236,7 +279,18 @@ export async function fetchEmployeeDetails(id: string): Promise<EmployeeDetailsR
 
     return {
       profile: user,
+      stats: {
+        totalAbsences: 0,
+        totalPointages: 0,
+        totalSanctions: 0,
+        joursAbsence: 0,
+        heuresTravaillees: "0",
+        heuresSup: "0",
+      },
       activity,
+      absences: [],
+      pointages: [],
+      sanctions: [],
     };
   }
 }
@@ -252,7 +306,6 @@ export async function updateCurrentSuperAdmin(payload: {
   email?: string;
   service?: string;
   poste?: string;
-  badgeUid?: string;
   password?: string;
 }): Promise<User> {
   const response = await api.put("/admin/me", payload);

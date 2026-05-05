@@ -20,7 +20,6 @@ export default function SettingsPage() {
     email: '',
     service: '',
     poste: '',
-    badgeUid: '',
     password: '',
   });
 
@@ -44,7 +43,6 @@ export default function SettingsPage() {
           email: user.email || '',
           service: user.service || '',
           poste: user.poste || '',
-          badgeUid: user.badgeUid || '',
           password: '',
         })
       )
@@ -128,7 +126,6 @@ export default function SettingsPage() {
             <input className="px-3 py-2 bg-slate-50 rounded-md text-sm md:col-span-2" placeholder="Email" value={profileForm.email} onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))} />
             <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Service" value={profileForm.service} onChange={(e) => setProfileForm((prev) => ({ ...prev, service: e.target.value }))} />
             <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Poste" value={profileForm.poste} onChange={(e) => setProfileForm((prev) => ({ ...prev, poste: e.target.value }))} />
-            <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" placeholder="Badge RFID" value={profileForm.badgeUid} onChange={(e) => setProfileForm((prev) => ({ ...prev, badgeUid: e.target.value }))} />
             <input className="px-3 py-2 bg-slate-50 rounded-md text-sm" type="password" placeholder="Nouveau mot de passe (optionnel)" value={profileForm.password} onChange={(e) => setProfileForm((prev) => ({ ...prev, password: e.target.value }))} />
           </div>
           <div className="flex justify-end mt-4">
@@ -219,7 +216,6 @@ export default function SettingsPage() {
              </div>
            </div>
         </Card>
-      </div>
 
         <Card title="Alertes de Supervision">
            <div className="space-y-4 pt-2">
@@ -300,6 +296,68 @@ export default function SettingsPage() {
             </div>
           </div>
         </Card>
+
+        <Card title="Personnalisation">
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-700">Logo de l'entreprise</p>
+                  <p className="text-[11px] text-slate-400">Affiché dans les rapports PDF. Format recommandé: PNG ou JPG, max 500KB.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 500 * 1024) {
+                          toast.error('Le fichier ne doit pas dépasser 500KB');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          localStorage.setItem('companyLogo', reader.result as string);
+                          toast.success('Logo enregistré localement');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <div className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-center hover:bg-slate-50 transition-colors">
+                    Choisir un fichier
+                  </div>
+                </label>
+                {localStorage.getItem('companyLogo') && (
+                  <Button variant="ghost" onClick={() => {
+                    localStorage.removeItem('companyLogo');
+                    toast.success('Logo supprimé');
+                  }}>
+                    Supprimer
+                  </Button>
+                )}
+              </div>
+              {localStorage.getItem('companyLogo') && (
+                <div className="mt-3 p-2 bg-white rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-500 mb-2">Aperçu:</p>
+                  <img 
+                    src={localStorage.getItem('companyLogo') || ''} 
+                    alt="Logo" 
+                    className="h-12 object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

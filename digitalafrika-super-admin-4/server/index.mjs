@@ -64,7 +64,6 @@ app.post("/api/auth/login", async (req, res) => {
       role: user.role,
       service: user.service,
       active: user.active,
-      badgeUid: user.badge_uid || "-",
     },
   });
 });
@@ -74,7 +73,7 @@ app.use("/api/admin", requireAuth, requireSuperAdmin);
 app.get("/api/admin/admins", async (_req, res) => {
   const result = await query(
     `
-      SELECT id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      SELECT id, first_name, last_name, email, role, service, poste, active, created_at
       FROM employes
       WHERE role IN ('admin', 'employee')
       ORDER BY created_at DESC
@@ -90,7 +89,6 @@ app.get("/api/admin/admins", async (_req, res) => {
       service: row.service,
       poste: row.poste || "",
       active: row.active,
-      badgeUid: row.badge_uid || "-",
       createdAt: row.created_at,
     }))
   );
@@ -99,7 +97,7 @@ app.get("/api/admin/admins", async (_req, res) => {
 app.post("/api/admin/admins", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
-  const { firstName, lastName, email, role, service, poste, badgeUid, password } = req.body || {};
+  const { firstName, lastName, email, role, service, poste, password } = req.body || {};
   if (!firstName || !lastName || !email || !service || !password) {
     return res.status(400).json({ message: "Champs obligatoires manquants." });
   }
@@ -107,11 +105,11 @@ app.post("/api/admin/admins", async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   const insert = await query(
     `
-      INSERT INTO employes (first_name, last_name, email, password_hash, role, service, poste, badge_uid, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-      RETURNING id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      INSERT INTO employes (first_name, last_name, email, password_hash, role, service, poste, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      RETURNING id, first_name, last_name, email, role, service, poste, active, created_at
     `,
-    [firstName, lastName, String(email).toLowerCase(), hash, safeRole, service, poste || null, badgeUid || null]
+    [firstName, lastName, String(email).toLowerCase(), hash, safeRole, service, poste || null]
   );
   const created = insert.rows[0];
 
@@ -132,7 +130,6 @@ app.post("/api/admin/admins", async (req, res) => {
     service: created.service,
     poste: created.poste || "",
     active: created.active,
-    badgeUid: created.badge_uid || "-",
     createdAt: created.created_at,
   });
 });
@@ -141,7 +138,7 @@ app.put("/api/admin/admins/:id", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
   const id = Number(req.params.id);
-  const { firstName, lastName, service, poste, role, badgeUid } = req.body || {};
+  const { firstName, lastName, service, poste, role } = req.body || {};
   const safeRole = role ? (role === "admin" ? "admin" : "employee") : null;
   const update = await query(
     `
@@ -150,12 +147,11 @@ app.put("/api/admin/admins/:id", async (req, res) => {
           last_name = COALESCE($2, last_name),
           service = COALESCE($3, service),
           poste = COALESCE($4, poste),
-          role = CASE WHEN $5::text IS NULL THEN role ELSE $5 END,
-          badge_uid = COALESCE($6, badge_uid)
-      WHERE id = $7 AND role IN ('admin', 'employee')
+          role = CASE WHEN $5::text IS NULL THEN role ELSE $5 END
+      WHERE id = $6 AND role IN ('admin', 'employee')
       RETURNING *
     `,
-    [firstName || null, lastName || null, service || null, poste || null, safeRole, badgeUid || null, id]
+    [firstName || null, lastName || null, service || null, poste || null, safeRole, id]
   );
   if (!update.rowCount) {
     return res.status(404).json({ message: "Utilisateur introuvable." });
@@ -179,7 +175,7 @@ app.get("/api/admin/employees/:id", async (req, res) => {
 
   const employee = await query(
     `
-      SELECT id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      SELECT id, first_name, last_name, email, role, service, poste, active, created_at
       FROM employes
       WHERE id = $1 AND role IN ('admin', 'employee')
       LIMIT 1
@@ -192,16 +188,54 @@ app.get("/api/admin/employees/:id", async (req, res) => {
 
   const row = employee.rows[0];
   const fullNameTarget = `${row.first_name} ${row.last_name}`.trim();
-  const activity = await query(
-    `
-      SELECT id, created_at, user_name, action, target, details
-      FROM audit_logs
-      WHERE user_id = $1 OR target = $2
-      ORDER BY created_at DESC
-      LIMIT 50
-    `,
-    [id, fullNameTarget]
-  );
+
+  const [activity, absences, pointages, sanctions] = await Promise.all([
+    query(
+      `
+        SELECT id, created_at, user_name, action, target, details
+        FROM audit_logs
+        WHERE user_id = $1 OR target = $2
+        ORDER BY created_at DESC
+        LIMIT 50
+      `,
+      [id, fullNameTarget]
+    ),
+    query(
+      `
+        SELECT a.id, a.type, a.date_debut, a.date_fin, a.statut, a.motif, a.created_at,
+               e.first_name || ' ' || e.last_name as valide_par_nom
+        FROM absences a
+        LEFT JOIN employes e ON a.valide_par = e.id
+        WHERE a.employe_id = $1
+        ORDER BY a.date_debut DESC
+        LIMIT 20
+      `,
+      [id]
+    ),
+    query(
+      `
+        SELECT id, date_pointage, heure_entree, heure_sortie, type_pointage,
+               heures_travaillees, heures_supplementaires, commentaire
+        FROM pointages
+        WHERE employe_id = $1
+        ORDER BY date_pointage DESC
+        LIMIT 30
+      `,
+      [id]
+    ),
+    query(
+      `
+        SELECT s.id, s.type, s.motif, s.date_incident, s.date_decision, s.statut,
+               e.first_name || ' ' || e.last_name as decisionnee_par_nom
+        FROM sanctions s
+        LEFT JOIN employes e ON s.decisionnee_par = e.id
+        WHERE s.employe_id = $1
+        ORDER BY s.date_decision DESC
+        LIMIT 10
+      `,
+      [id]
+    )
+  ]);
 
   res.json({
     profile: {
@@ -213,8 +247,15 @@ app.get("/api/admin/employees/:id", async (req, res) => {
       service: row.service,
       poste: row.poste || "",
       active: row.active,
-      badgeUid: row.badge_uid || "-",
       createdAt: row.created_at,
+    },
+    stats: {
+      totalAbsences: absences.rowCount,
+      totalPointages: pointages.rowCount,
+      totalSanctions: sanctions.rowCount,
+      joursAbsence: absences.rows.reduce((acc, a) => acc + Math.ceil((new Date(a.date_fin) - new Date(a.date_debut)) / (1000 * 60 * 60 * 24)), 0),
+      heuresTravaillees: pointages.rows.reduce((acc, p) => acc + parseFloat(p.heures_travaillees || 0), 0).toFixed(2),
+      heuresSup: pointages.rows.reduce((acc, p) => acc + parseFloat(p.heures_supplementaires || 0), 0).toFixed(2),
     },
     activity: activity.rows.map((log) => ({
       id: String(log.id),
@@ -224,13 +265,42 @@ app.get("/api/admin/employees/:id", async (req, res) => {
       target: log.target,
       details: log.details,
     })),
+    absences: absences.rows.map((a) => ({
+      id: String(a.id),
+      type: a.type,
+      dateDebut: a.date_debut,
+      dateFin: a.date_fin,
+      statut: a.statut,
+      motif: a.motif,
+      validePar: a.valide_par_nom,
+      createdAt: a.created_at,
+    })),
+    pointages: pointages.rows.map((p) => ({
+      id: String(p.id),
+      date: p.date_pointage,
+      entree: p.heure_entree,
+      sortie: p.heure_sortie,
+      type: p.type_pointage,
+      heuresTravaillees: p.heures_travaillees,
+      heuresSup: p.heures_supplementaires,
+      commentaire: p.commentaire,
+    })),
+    sanctions: sanctions.rows.map((s) => ({
+      id: String(s.id),
+      type: s.type,
+      motif: s.motif,
+      dateIncident: s.date_incident,
+      dateDecision: s.date_decision,
+      statut: s.statut,
+      decisionneePar: s.decisionnee_par_nom,
+    })),
   });
 });
 
 app.get("/api/admin/me", async (req, res) => {
   const result = await query(
     `
-      SELECT id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+      SELECT id, first_name, last_name, email, role, service, poste, active, created_at
       FROM employes
       WHERE id = $1 AND role = 'superadmin'
       LIMIT 1
@@ -250,7 +320,6 @@ app.get("/api/admin/me", async (req, res) => {
     service: me.service,
     poste: me.poste || "",
     active: me.active,
-    badgeUid: me.badge_uid || "-",
     createdAt: me.created_at,
   });
 });
@@ -258,7 +327,7 @@ app.get("/api/admin/me", async (req, res) => {
 app.put("/api/admin/me", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
-  const { firstName, lastName, email, service, poste, badgeUid, password } = req.body || {};
+  const { firstName, lastName, email, service, poste, password } = req.body || {};
 
   if (password && String(password).length < 8) {
     return res.status(400).json({ message: "Le mot de passe doit contenir au moins 8 caractères." });
@@ -277,10 +346,9 @@ app.put("/api/admin/me", async (req, res) => {
           email = COALESCE($3, email),
           service = COALESCE($4, service),
           poste = COALESCE($5, poste),
-          badge_uid = COALESCE($6, badge_uid),
-          password_hash = COALESCE($7, password_hash)
-      WHERE id = $8 AND role = 'superadmin'
-      RETURNING id, first_name, last_name, email, role, service, poste, active, badge_uid, created_at
+          password_hash = COALESCE($6, password_hash)
+      WHERE id = $7 AND role = 'superadmin'
+      RETURNING id, first_name, last_name, email, role, service, poste, active, created_at
     `,
     [
       firstName || null,
@@ -288,7 +356,6 @@ app.put("/api/admin/me", async (req, res) => {
       email ? String(email).toLowerCase() : null,
       service || null,
       poste || null,
-      badgeUid || null,
       passwordHash,
       req.auth.sub,
     ]
@@ -315,7 +382,6 @@ app.put("/api/admin/me", async (req, res) => {
     service: updated.service,
     poste: updated.poste || "",
     active: updated.active,
-    badgeUid: updated.badge_uid || "-",
     createdAt: updated.created_at,
   });
 });
@@ -703,12 +769,68 @@ app.get("/api/admin/stats/global", async (_req, res) => {
   const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
   const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE active = true");
   const totalUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role IN ('employee', 'admin')");
-  const createUsers = await query("SELECT COUNT(*)::int AS total FROM audit_logs WHERE action = 'CREATE_USER'");
-  const suspendUsers = await query("SELECT COUNT(*)::int AS total FROM audit_logs WHERE action = 'SUSPEND_USER'");
-  const updateConfig = await query("SELECT COUNT(*)::int AS total FROM audit_logs WHERE action = 'UPDATE_CONFIG'");
-  const total = totalUsers.rows[0].total || 1;
-  const inactive = total - activeUsers.rows[0].total;
-  const absenteeismRate = Number(((inactive / total) * 100).toFixed(1));
+  
+  // Calcul du taux d'absentéisme réel (basé sur les absences approuvées du mois courant)
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const absencesResult = await query(
+    `
+      SELECT 
+        COUNT(DISTINCT employe_id)::int AS total_absents,
+        SUM(
+          CASE 
+            WHEN date_fin >= date_debut THEN (date_fin - date_debut) + 1
+            ELSE 1
+          END
+        )::int AS total_jours_absence
+      FROM absences 
+      WHERE statut = 'approuvee' 
+        AND to_char(date_debut, 'YYYY-MM') = $1
+    `,
+    [currentMonth]
+  );
+  
+  const totalEmp = employees.rows[0].total || 1;
+  const absentEmployees = absencesResult.rows[0].total_absents || 0;
+  const absenteeismRate = Number(((absentEmployees / totalEmp) * 100).toFixed(1));
+  
+  // Heures supplémentaires réelles du mois (basé sur les pointages)
+  const overtimeResult = await query(
+    `
+      SELECT 
+        COALESCE(SUM(heures_supplementaires), 0)::float AS total_heures_sup,
+        COALESCE(SUM(heures_travaillees), 0)::float AS total_heures_travaillees
+      FROM pointages 
+      WHERE to_char(date_pointage, 'YYYY-MM') = $1
+    `,
+    [currentMonth]
+  );
+  
+  const monthlyOvertimeHours = Number((overtimeResult.rows[0].total_heures_sup || 0).toFixed(1));
+  
+  // Coût estimé des heures sup (taux moyen de 3000 FCFA/heure)
+  const hourlyRate = 3000;
+  const estimatedOvertimeCost = Math.round(monthlyOvertimeHours * hourlyRate);
+  
+  // Retards (pointages de type 'retard' du mois)
+  const lateResult = await query(
+    `
+      SELECT COUNT(*)::int AS total 
+      FROM pointages 
+      WHERE type_pointage = 'retard' 
+        AND to_char(date_pointage, 'YYYY-MM') = $1
+    `,
+    [currentMonth]
+  );
+  
+  // Absences en attente
+  const pendingAbsencesResult = await query(
+    `
+      SELECT COUNT(*)::int AS total 
+      FROM absences 
+      WHERE statut = 'en_attente'
+    `
+  );
+  
   const serviceActivityRows = await query(
     `
       SELECT service, COUNT(*)::int AS total, COUNT(*) FILTER (WHERE active = true)::int AS active
@@ -718,11 +840,12 @@ app.get("/api/admin/stats/global", async (_req, res) => {
       ORDER BY service ASC
     `
   );
+  
   const criticalRows = await query(
     `
       SELECT COUNT(*)::int AS total
       FROM audit_logs
-      WHERE action IN ('DELETE_USER', 'SUSPEND_USER')
+      WHERE action IN ('DELETE_USER', 'SUSPEND_USER', 'RH_OVERRIDE')
         AND created_at >= NOW() - INTERVAL '24 hours'
     `
   );
@@ -732,10 +855,10 @@ app.get("/api/admin/stats/global", async (_req, res) => {
     admins: admins.rows[0].total,
     activeUsers: activeUsers.rows[0].total,
     absenteeismRate,
-    pendingAbsences: suspendUsers.rows[0].total,
-    lateArrivalsCount: createUsers.rows[0].total,
-    monthlyOvertimeHours: updateConfig.rows[0].total * 4,
-    estimatedOvertimeCost: updateConfig.rows[0].total * 80,
+    pendingAbsences: pendingAbsencesResult.rows[0].total,
+    lateArrivalsCount: lateResult.rows[0].total,
+    monthlyOvertimeHours,
+    estimatedOvertimeCost,
     serviceActivity: serviceActivityRows.rows.map((row) => ({
       name: row.service,
       current: row.active,
@@ -890,24 +1013,111 @@ app.get("/api/admin/export/global", async (req, res) => {
   if (format === "pdf") {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${type}_${month || "all"}.pdf"`);
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const doc = new PDFDocument({ margin: 40, size: "A4", layout: 'portrait' });
     doc.pipe(res);
-    doc.fontSize(16).text("DigitalAfrika - Rapport SuperAdmin");
-    doc.moveDown(0.5);
-    doc.fontSize(10).text(`Type: ${type}`);
-    doc.text(`Service: ${service}`);
-    doc.text(`Periode: ${month || "toutes"}`);
-    doc.text(`Nombre de lignes: ${rows.length}`);
-    doc.moveDown();
-
-    const printableRows = rows.slice(0, 120);
-    for (const row of printableRows) {
-      doc.fontSize(8).text(Object.entries(row).map(([k, v]) => `${k}: ${v ?? ""}`).join(" | "));
-      doc.moveDown(0.3);
+    
+    const pageWidth = doc.page.width - 80;
+    const now = new Date();
+    const logoPath = process.env.COMPANY_LOGO_PATH || null;
+    
+    // Header avec logo (si disponible)
+    if (logoPath && require('fs').existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 40, 40, { width: 80 });
+      } catch {
+        // Si le logo ne charge pas, on continue sans
+      }
     }
-    if (rows.length > printableRows.length) {
-      doc.moveDown().fontSize(8).text(`... ${rows.length - printableRows.length} lignes supplementaires non affichees.`);
+    
+    // Titre du rapport
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e293b');
+    doc.text('RAPPORT', 140, 40);
+    doc.fontSize(14).font('Helvetica').fillColor('#64748b');
+    doc.text(getReportTypeLabel(type), 140, 65);
+    
+    // Ligne de séparation
+    doc.strokeColor('#e2e8f0').lineWidth(1);
+    doc.moveTo(40, 100).lineTo(pageWidth + 40, 100).stroke();
+    
+    // Informations du rapport
+    doc.fontSize(9).font('Helvetica').fillColor('#475569');
+    doc.text(`Généré le: ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`, 40, 115);
+    doc.text(`Période: ${month ? new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Toutes périodes'}`, 40, 130);
+    doc.text(`Service: ${service === 'all' ? 'Tous les services' : service}`, 40, 145);
+    doc.text(`Nombre d'enregistrements: ${rows.length}`, 40, 160);
+    
+    // Ligne de séparation
+    doc.moveTo(40, 180).lineTo(pageWidth + 40, 180).stroke();
+    
+    // Contenu du rapport sous forme de tableau
+    if (rows.length > 0) {
+      let y = 200;
+      const rowHeight = 20;
+      const colWidth = pageWidth / Math.min(4, Object.keys(rows[0]).length);
+      
+      // En-têtes du tableau
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
+      const headers = Object.keys(rows[0]);
+      headers.slice(0, 4).forEach((header, i) => {
+        doc.text(header.toUpperCase(), 40 + i * colWidth, y, { width: colWidth - 5 });
+      });
+      
+      y += rowHeight;
+      doc.strokeColor('#cbd5e1').lineWidth(0.5);
+      doc.moveTo(40, y - 5).lineTo(pageWidth + 40, y - 5).stroke();
+      
+      // Lignes de données
+      doc.fontSize(8).font('Helvetica').fillColor('#334155');
+      const printableRows = rows.slice(0, 60);
+      
+      printableRows.forEach((row, idx) => {
+        if (y > 750) {
+          doc.addPage();
+          y = 40;
+          // Ré-en-tête sur nouvelle page
+          doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
+          headers.slice(0, 4).forEach((header, i) => {
+            doc.text(header.toUpperCase(), 40 + i * colWidth, y, { width: colWidth - 5 });
+          });
+          y += rowHeight;
+        }
+        
+        // Alternance de couleurs de fond
+        if (idx % 2 === 0) {
+          doc.fillColor('#f8fafc').rect(40, y - 2, pageWidth, rowHeight - 2).fill();
+        }
+        
+        doc.fillColor('#334155');
+        headers.slice(0, 4).forEach((header, i) => {
+          let value = row[header];
+          if (value === null || value === undefined) value = '-';
+          if (typeof value === 'boolean') value = value ? 'Oui' : 'Non';
+          if (typeof value === 'object') value = JSON.stringify(value);
+          const strValue = String(value).substring(0, 25);
+          doc.text(strValue, 40 + i * colWidth, y, { width: colWidth - 5 });
+        });
+        
+        y += rowHeight;
+      });
+      
+      if (rows.length > printableRows.length) {
+        y += 10;
+        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#94a3b8');
+        doc.text(`... et ${rows.length - printableRows.length} enregistrements supplémentaires`, 40, y);
+      }
+    } else {
+      doc.fontSize(12).font('Helvetica-Oblique').fillColor('#94a3b8');
+      doc.text('Aucune donnée disponible pour cette période.', 40, 250, { align: 'center' });
     }
+    
+    // Pied de page
+    const footerY = doc.page.height - 50;
+    doc.strokeColor('#e2e8f0').lineWidth(0.5);
+    doc.moveTo(40, footerY - 10).lineTo(pageWidth + 40, footerY - 10).stroke();
+    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8');
+    doc.text('DigitalAfrika - Système de Pointage', 40, footerY, { align: 'center' });
+    doc.text('Document confidentiel', 40, footerY + 12, { align: 'center' });
+    
     doc.end();
     return;
   }
@@ -917,14 +1127,23 @@ app.get("/api/admin/export/global", async (req, res) => {
   res.send(csv);
 });
 
+function getReportTypeLabel(type) {
+  const labels = {
+    absences: 'Rapport des Absences',
+    pointages: 'Registre des Pointages',
+    disciplinaire: 'Audit Disciplinaire',
+  };
+  return labels[type] || 'Rapport';
+}
+
 async function seedIfNeeded() {
   const check = await query("SELECT id FROM employes WHERE role = 'superadmin' LIMIT 1");
   if (!check.rowCount) {
     const hash = await bcrypt.hash(process.env.SUPERADMIN_PASSWORD || "password123", 10);
     await query(
       `
-        INSERT INTO employes (first_name, last_name, email, password_hash, role, service, active, badge_uid)
-        VALUES ('Super', 'Admin', $1, $2, 'superadmin', 'Direction', true, 'SUPER-RFID-001')
+        INSERT INTO employes (first_name, last_name, email, password_hash, role, service, active)
+        VALUES ('Super', 'Admin', $1, $2, 'superadmin', 'Direction', true)
       `,
       [process.env.SUPERADMIN_EMAIL || "boss@digitalafrika.com", hash]
     );
