@@ -12,6 +12,123 @@ const router = Router();
 router.use(requireSuperAdmin);
 
 // ═══════════════════════════════════════════════
+// PROFIL SUPERADMIN (me)
+// ═══════════════════════════════════════════════
+
+// ─── GET /api/admin/me ───
+router.get("/me", async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
+              COALESCE(s.nom, '') AS service, e.poste, e.actif AS active,
+              e.uid_badge AS badge_uid, e.created_at
+       FROM employes e
+       LEFT JOIN services s ON s.id = e.service_id
+       WHERE e.id = $1`,
+      [req.auth.sub]
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Profil SuperAdmin introuvable." });
+    }
+    const u = result.rows[0];
+    res.json({
+      id: String(u.id),
+      firstName: u.first_name,
+      lastName: u.last_name,
+      email: u.email,
+      role: u.role,
+      service: u.service,
+      poste: u.poste || "",
+      active: u.active,
+      badgeUid: u.badge_uid || "-",
+      createdAt: u.created_at,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── PUT /api/admin/me ───
+router.put("/me", async (req, res, next) => {
+  try {
+    const { firstName, lastName, email, service, poste, password } = req.body || {};
+
+    // Si service est fourni, convertir nom → service_id
+    let serviceId = null;
+    if (service) {
+      const srvResult = await query("SELECT id FROM services WHERE nom = $1", [service]);
+      if (srvResult.rowCount) {
+        serviceId = srvResult.rows[0].id;
+      }
+    }
+
+    // Si un nouveau password est fourni, le hasher
+    let hashClause = "";
+    const values = [
+      firstName || null,
+      lastName || null,
+      email ? String(email).toLowerCase() : null,
+      serviceId,
+      poste || null,
+      req.auth.sub,
+    ];
+
+    if (password && String(password).length >= 4) {
+      const hash = await bcrypt.hash(String(password), 10);
+      values.push(hash);
+      hashClause = `, password_hash = $${values.length}`;
+    }
+
+    const result = await query(
+      `UPDATE employes SET
+         first_name = COALESCE($1, first_name),
+         last_name = COALESCE($2, last_name),
+         email = COALESCE($3, email),
+         service_id = COALESCE($4, service_id),
+         poste = COALESCE($5, poste)
+         ${hashClause}
+       WHERE id = $6
+       RETURNING *`,
+      values
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Profil introuvable." });
+    }
+
+    const u = result.rows[0];
+    // Récupérer le nom du service
+    const srvName = await query("SELECT nom FROM services WHERE id = $1", [u.service_id]);
+
+    const actor = await getActor(req);
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "UPDATE_PROFILE", target: "SUPERADMIN",
+        details: "Mise à jour du profil SuperAdmin", ip: req.ip,
+      });
+    }
+
+    res.json({
+      id: String(u.id),
+      firstName: u.first_name,
+      lastName: u.last_name,
+      email: u.email,
+      role: u.role,
+      service: srvName.rows[0]?.nom || "",
+      poste: u.poste || "",
+      active: u.actif,
+      badgeUid: u.uid_badge || "-",
+      createdAt: u.created_at,
+    });
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ message: "Cet email est déjà utilisé." });
+    }
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
 // GESTION DES UTILISATEURS (Admin + Employé)
 // ═══════════════════════════════════════════════
 
@@ -313,8 +430,26 @@ router.put("/config", async (req, res, next) => {
       const dbKey = keyMap[key] || key;
       const dbValue = typeof value === "string" ? value : String(value);
       await query(
-        `UPDATE configurations SET valeur = $1, modifie_par = $2, updated_at = NOW() WHERE cle = $3`,
+        `INSERT INTO configurations (cle, valeur, modifie_par, updated_at)
+         VALUES ($3, $1, $2, NOW())
+         ON CONFLICT (cle) DO UPDATE SET valeur = $1, modifie_par = $2, updated_at = NOW()`,
         [dbValue, req.auth.sub, dbKey]
+      );
+    }
+
+    // ── Propager les horaires sur tous les employés/admins ──
+    // Quand le superadmin modifie defaultEntry ou defaultExit,
+    // on met à jour heure_debut / heure_fin de tous les employés et admins
+    if (body.defaultEntry) {
+      await query(
+        `UPDATE employes SET heure_debut = $1::time WHERE role IN ('employee', 'admin')`,
+        [body.defaultEntry]
+      );
+    }
+    if (body.defaultExit) {
+      await query(
+        `UPDATE employes SET heure_fin = $1::time WHERE role IN ('employee', 'admin')`,
+        [body.defaultExit]
       );
     }
 
@@ -322,7 +457,8 @@ router.put("/config", async (req, res, next) => {
       await writeAuditLog({
         userId: actor.id, userName: actor.name, role: actor.role,
         action: "UPDATE_CONFIG", target: "CONFIG_GLOBAL",
-        details: "Mise à jour des paramètres système", ip: req.ip,
+        details: `Mise à jour des paramètres système${body.defaultEntry ? ` — Arrivée: ${body.defaultEntry}` : ""}${body.defaultExit ? ` — Départ: ${body.defaultExit}` : ""}`,
+        ip: req.ip,
       });
     }
     res.json({ success: true });

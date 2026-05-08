@@ -301,7 +301,10 @@ INSERT INTO configurations (cle, valeur, description) VALUES
     ('seuil_absence_sanction', '2',     'Absences injustifiées pour sanction'),
     ('taille_max_fichier',     '5242880','Taille max fichier en octets'),
     ('jwt_expiration_heures',  '8',     'Durée JWT en heures'),
-    ('delai_min_entre_scans',  '300',   'Délai min entre 2 scans (secondes)')
+    ('delai_min_entre_scans',  '300',   'Délai min entre 2 scans (secondes)'),
+    ('require_justification',  'true',  'Justificatif obligatoire pour les absences'),
+    ('notify_absence_3d',      'true',  'Alerter après 3 jours absence consécutifs'),
+    ('notify_suspicious_rh',   'true',  'Alerter si validation RH sans pièces jointes')
 ON CONFLICT (cle) DO NOTHING;
 
 -- ============================================================
