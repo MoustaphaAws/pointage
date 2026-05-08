@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/kpi_card.dart';
 import '../widgets/absence_tile.dart';
 import 'qr_display_screen.dart';
+import 'qr_scanner_screen.dart';
 
 class AdminDashboard extends ConsumerWidget {
   const AdminDashboard({super.key});
@@ -14,6 +15,9 @@ class AdminDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
+    final canPoint = currentUser?.role == 'admin'
+        ? (currentUser?.adminPermissions.canPoint ?? false)
+        : true;
     final canValidateAbsences = currentUser?.adminPermissions.canValidateAbsences ?? true;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sectionTitleColor = isDark ? AppColors.darkTextPrimary : AppColors.slate800;
@@ -43,7 +47,7 @@ class AdminDashboard extends ConsumerWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const QrDisplayScreen(),
+                    builder: (_) => canPoint ? const QrScannerScreen() : const QrDisplayScreen(),
                   ),
                 );
               },
@@ -83,7 +87,7 @@ class AdminDashboard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'QR Code du jour',
+                            canPoint ? 'Scanner pour pointer' : 'QR Code du jour',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -92,7 +96,7 @@ class AdminDashboard extends ConsumerWidget {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            'Afficher • Imprimer • Partager',
+                            canPoint ? 'Scanner • Valider votre pointage' : 'Afficher • Imprimer • Partager',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
