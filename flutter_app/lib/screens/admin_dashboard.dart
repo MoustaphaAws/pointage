@@ -82,7 +82,7 @@ class AdminDashboard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -94,7 +94,7 @@ class AdminDashboard extends ConsumerWidget {
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
                             canPoint ? 'Scanner • Valider votre pointage' : 'Afficher • Imprimer • Partager',
                             style: TextStyle(

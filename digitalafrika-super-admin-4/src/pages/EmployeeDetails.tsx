@@ -365,15 +365,23 @@ function SanctionsTab({ sanctions }: { sanctions: SanctionItem[] }) {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${
-                sanction.type === 'avertissement' ? 'bg-amber-100 text-amber-600' :
-                sanction.type === 'blame' ? 'bg-orange-100 text-orange-600' :
-                sanction.type === 'mise_a_pied' ? 'bg-red-100 text-red-600' :
-                'bg-red-200 text-red-700'
+                sanction.type === 'rappel_verbal' ? 'bg-amber-100 text-amber-600' :
+                sanction.type === 'avertissement' ? 'bg-orange-100 text-orange-600' :
+                sanction.type === 'sanction_disciplinaire' ? 'bg-red-100 text-red-600' :
+                'bg-slate-100 text-slate-700'
               }`}>
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <p className="font-bold text-slate-800 capitalize">{sanction.type.replace(/_/g, ' ')}</p>
+                <p className="font-bold text-slate-800 capitalize">
+                  {sanction.type === 'rappel_verbal'
+                    ? 'Rappel verbal'
+                    : sanction.type === 'avertissement'
+                    ? 'Avertissement'
+                    : sanction.type === 'sanction_disciplinaire'
+                    ? 'Sanction disciplinaire'
+                    : sanction.type.replace(/_/g, ' ')}
+                </p>
                 <p className="text-xs text-slate-500 mt-0.5">{sanction.motif}</p>
               </div>
             </div>
@@ -471,12 +479,16 @@ function PointageTypeBadge({ type }: { type: string }) {
 
 function SanctionStatusBadge({ statut }: { statut: string }) {
   const styles: Record<string, string> = {
+    alerte: 'bg-red-100 text-red-700 border-red-200',
+    traite: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     actif: 'bg-red-100 text-red-700 border-red-200',
     annule: 'bg-slate-100 text-slate-600 border-slate-200',
     archive: 'bg-blue-100 text-blue-700 border-blue-200',
   };
   
   const labels: Record<string, string> = {
+    alerte: 'Alerte',
+    traite: 'Traitée',
     actif: 'Active',
     annule: 'Annulée',
     archive: 'Archivée',

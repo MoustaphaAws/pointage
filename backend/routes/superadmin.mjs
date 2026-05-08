@@ -291,6 +291,159 @@ router.put("/admins/:id", async (req, res, next) => {
   }
 });
 
+// ─── GET /api/admin/employees/:id ─── (Détail complet utilisateur)
+router.get("/employees/:id", async (req, res, next) => {
+  try {
+    const employeeId = String(req.params.id || "").trim();
+    if (!employeeId) {
+      return res.status(400).json({ message: "Identifiant invalide." });
+    }
+
+    const profileResult = await query(
+      `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
+              s.nom AS service, e.poste, e.actif AS active,
+              e.admin_permissions, e.created_at
+       FROM employes e
+       JOIN services s ON s.id = e.service_id
+       WHERE e.id = $1 AND e.role IN ('employee', 'admin')
+       LIMIT 1`,
+      [employeeId]
+    );
+    if (!profileResult.rowCount) {
+      return res.status(404).json({ message: "Employé introuvable." });
+    }
+
+    const row = profileResult.rows[0];
+
+    const [absencesResult, pointagesResult, sanctionsResult, activityResult] = await Promise.all([
+      query(
+        `SELECT a.id, t.libelle AS type, a.date_debut, a.date_fin, a.statut, a.motif, a.created_at,
+                COALESCE(v.first_name || ' ' || v.last_name, '') AS valide_par
+         FROM absences a
+         JOIN types_absence t ON t.id = a.type_absence_id
+         LEFT JOIN employes v ON v.id = a.valide_par
+         WHERE a.employe_id = $1
+         ORDER BY a.date_debut DESC
+         LIMIT 100`,
+        [employeeId]
+      ),
+      query(
+        `SELECT id, date, heure_arrivee, heure_depart, statut,
+                duree_travail_minutes, heures_sup_minutes
+         FROM pointages
+         WHERE employe_id = $1
+         ORDER BY date DESC
+         LIMIT 120`,
+        [employeeId]
+      ),
+      query(
+        `SELECT s.id, s.type_sanction, s.motif, s.mois_reference, s.statut, s.created_at, s.date_traitement,
+                COALESCE(d.first_name || ' ' || d.last_name, '') AS decisionnee_par
+         FROM sanctions s
+         LEFT JOIN employes d ON d.id = s.traite_par
+         WHERE s.employe_id = $1
+         ORDER BY s.created_at DESC
+         LIMIT 100`,
+        [employeeId]
+      ),
+      query(
+        `SELECT id, created_at, action, entite, details
+         FROM audit_logs
+         WHERE user_id = $1
+            OR entite_id = $1
+            OR (details->>'target_user_id') = $1
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [employeeId]
+      ),
+    ]);
+
+    const totalAbsences = absencesResult.rowCount;
+    const totalPointages = pointagesResult.rowCount;
+    const totalSanctions = sanctionsResult.rowCount;
+
+    const joursAbsence = absencesResult.rows.reduce((acc, a) => {
+      const start = new Date(a.date_debut);
+      const end = new Date(a.date_fin);
+      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return acc + (Number.isFinite(diff) && diff > 0 ? diff : 0);
+    }, 0);
+
+    const totalMinutes = pointagesResult.rows.reduce(
+      (acc, p) => acc + Number(p.duree_travail_minutes || 0),
+      0
+    );
+    const totalSupMinutes = pointagesResult.rows.reduce(
+      (acc, p) => acc + Number(p.heures_sup_minutes || 0),
+      0
+    );
+
+    const toHours = (minutes) => (minutes / 60).toFixed(2);
+
+    res.json({
+      profile: {
+        id: String(row.id),
+        firstName: row.first_name,
+        lastName: row.last_name,
+        email: row.email,
+        role: row.role,
+        service: row.service,
+        poste: row.poste || "",
+        active: row.active,
+        adminPermissions: row.role === "admin" ? (row.admin_permissions || {}) : undefined,
+        createdAt: row.created_at,
+      },
+      stats: {
+        totalAbsences,
+        totalPointages,
+        totalSanctions,
+        joursAbsence,
+        heuresTravaillees: toHours(totalMinutes),
+        heuresSup: toHours(totalSupMinutes),
+      },
+      activity: activityResult.rows.map((log) => ({
+        id: String(log.id),
+        timestamp: log.created_at,
+        action: log.action,
+        actor: log.details?.user_name || "Système",
+        target: log.entite,
+        details: log.details?.details || "",
+      })),
+      absences: absencesResult.rows.map((a) => ({
+        id: String(a.id),
+        type: a.type,
+        dateDebut: a.date_debut,
+        dateFin: a.date_fin,
+        statut: a.statut,
+        motif: a.motif || "",
+        validePar: a.valide_par || "",
+        createdAt: a.created_at,
+      })),
+      pointages: pointagesResult.rows.map((p) => ({
+        id: String(p.id),
+        date: p.date,
+        entree: p.heure_arrivee ? new Date(p.heure_arrivee).toISOString().slice(11, 16) : "",
+        sortie: p.heure_depart ? new Date(p.heure_depart).toISOString().slice(11, 16) : "",
+        type: p.statut,
+        heuresTravaillees: Number((Number(p.duree_travail_minutes || 0) / 60).toFixed(2)),
+        heuresSup: Number((Number(p.heures_sup_minutes || 0) / 60).toFixed(2)),
+        commentaire: "",
+      })),
+      sanctions: sanctionsResult.rows.map((s) => ({
+        id: String(s.id),
+        type: s.type_sanction,
+        motif: s.motif,
+        dateIncident: s.mois_reference,
+        dateDecision: s.date_traitement || s.created_at,
+        statut: s.statut,
+        decisionneePar: s.decisionnee_par || "",
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── PUT /api/admin/admins/:id/suspend ───
 router.put("/admins/:id/suspend", async (req, res, next) => {
   try {
