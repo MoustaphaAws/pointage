@@ -419,7 +419,7 @@ class _PointageTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                '+${pointage.delayMinutes}min',
+                '+${_formatDelay(pointage.delayMinutes)}',
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -431,6 +431,14 @@ class _PointageTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDelay(int minutes) {
+    if (minutes < 60) return '${minutes}min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (m == 0) return '${h}h';
+    return '${h}h${m.toString().padLeft(2, '0')}';
   }
 
   _StatusConfig _statusConfig(String status) {

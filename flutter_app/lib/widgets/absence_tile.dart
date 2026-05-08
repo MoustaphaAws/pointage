@@ -7,6 +7,7 @@ class AbsenceTile extends StatelessWidget {
   final bool showEmployee;
   final VoidCallback? onApprove;
   final VoidCallback? onReject;
+  final VoidCallback? onTap;
 
   const AbsenceTile({
     super.key,
@@ -14,6 +15,7 @@ class AbsenceTile extends StatelessWidget {
     this.showEmployee = false,
     this.onApprove,
     this.onReject,
+    this.onTap,
   });
 
   Color _statusColor() {
@@ -54,150 +56,172 @@ class AbsenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.slate100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (showEmployee && absence.employeeName != null) ...[
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.slate100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    absence.employeeName!
-                        .split(' ')
-                        .map((n) => n.isNotEmpty ? n[0] : '')
-                        .join(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slate500,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.slate100),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (showEmployee && absence.employeeName != null) ...[
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.slate100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      absence.employeeName!
+                          .split(' ')
+                          .map((n) => n.isNotEmpty ? n[0] : '')
+                          .join(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate500,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        absence.employeeName!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          color: AppColors.slate900,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          absence.employeeName!,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: AppColors.slate900,
+                          ),
                         ),
-                      ),
-                      Text(
-                        absence.typeAbsenceLabel,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.slate400,
+                        Text(
+                          absence.typeAbsenceLabel,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.slate400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ] else ...[
-                Expanded(
+                ] else ...[
+                  Expanded(
+                    child: Text(
+                      absence.typeAbsenceLabel,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.slate900,
+                      ),
+                    ),
+                  ),
+                ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusBg(),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Text(
-                    absence.typeAbsenceLabel,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: AppColors.slate900,
+                    _statusLabel(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: _statusColor(),
                     ),
                   ),
                 ),
               ],
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _statusBg(),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _statusLabel(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                    color: _statusColor(),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Du ${absence.dateDebut} au ${absence.dateFin}',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.slate500,
+              ),
+            ),
+            // "Voir détails" hint when tappable
+            if (onTap != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.visibility_rounded, size: 14, color: AppColors.violet600),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Voir la demande',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.violet600,
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Du ${absence.dateDebut} au ${absence.dateFin}',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.slate500,
-            ),
-          ),
-          if (onApprove != null || onReject != null) ...[
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (onReject != null)
-                  TextButton(
-                    onPressed: onReject,
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppColors.slate100,
-                      foregroundColor: AppColors.slate700,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+            if (onApprove != null || onReject != null) ...[
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (onReject != null)
+                    TextButton(
+                      onPressed: onReject,
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.slate100,
+                        foregroundColor: AppColors.slate700,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
                       ),
-                      textStyle: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
+                      child: const Text('REJETER'),
                     ),
-                    child: const Text('REJETER'),
-                  ),
-                const SizedBox(width: 8),
-                if (onApprove != null)
-                  TextButton(
-                    onPressed: onApprove,
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppColors.emerald500,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 8),
+                  if (onApprove != null)
+                    TextButton(
+                      onPressed: onApprove,
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.emerald500,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
                       ),
-                      textStyle: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
+                      child: const Text('VALIDER'),
                     ),
-                    child: const Text('VALIDER'),
-                  ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
