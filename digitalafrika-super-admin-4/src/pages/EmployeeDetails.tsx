@@ -270,7 +270,7 @@ function AbsencesTab({ absences }: { absences: AbsenceItem[] }) {
               <tr key={absence.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <span className="text-sm font-medium text-slate-700 capitalize">
-                    {absence.type.replace(/_/g, ' ')}
+                    {absence.type}
                   </span>
                   {absence.motif && (
                     <p className="text-xs text-slate-400 mt-0.5">{absence.motif}</p>
@@ -280,7 +280,14 @@ function AbsencesTab({ absences }: { absences: AbsenceItem[] }) {
                   {new Date(absence.dateDebut).toLocaleDateString('fr-FR')} → {new Date(absence.dateFin).toLocaleDateString('fr-FR')}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-600">
-                  {Math.ceil((new Date(absence.dateFin).getTime() - new Date(absence.dateDebut).getTime()) / (1000 * 60 * 60 * 24))} jours
+                  {Math.max(
+                    1,
+                    Math.ceil(
+                      (new Date(absence.dateFin).getTime() - new Date(absence.dateDebut).getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    ) + 1
+                  )}{' '}
+                  jours
                 </td>
                 <td className="px-4 py-3">
                   <AbsenceStatusBadge statut={absence.statut} />
@@ -449,6 +456,7 @@ function AbsenceStatusBadge({ statut }: { statut: string }) {
     approuvee: { variant: 'success', label: 'Approuvée' },
     en_attente: { variant: 'warning', label: 'En attente' },
     rejetee: { variant: 'error', label: 'Rejetée' },
+    annulee: { variant: 'error', label: 'Annulée' },
   };
   
   const { variant, label } = variants[statut] || { variant: 'warning', label: statut };
@@ -461,6 +469,9 @@ function PointageTypeBadge({ type }: { type: string }) {
     absent: 'bg-red-100 text-red-700',
     retard: 'bg-amber-100 text-amber-700',
     demi_journee: 'bg-blue-100 text-blue-700',
+    jour_ferie: 'bg-sky-100 text-sky-700',
+    weekend: 'bg-slate-200 text-slate-700',
+    non_pointe: 'bg-slate-100 text-slate-600',
   };
   
   const labels: Record<string, string> = {
@@ -468,6 +479,9 @@ function PointageTypeBadge({ type }: { type: string }) {
     absent: 'Absent',
     retard: 'Retard',
     demi_journee: 'Mi-temps',
+    jour_ferie: 'Jour férié',
+    weekend: 'Weekend',
+    non_pointe: 'Non pointé',
   };
   
   return (
