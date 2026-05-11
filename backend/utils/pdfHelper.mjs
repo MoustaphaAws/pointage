@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { query } from "./db.mjs";
+import { query } from "../db.mjs";
 
 function formatValue(val, key) {
   if (val == null) return "-";
