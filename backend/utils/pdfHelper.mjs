@@ -1,21 +1,29 @@
 import PDFDocument from "pdfkit";
 
-/**
- * Formate une valeur pour l'affichage (notamment les dates et nombres)
- */
 function formatValue(val, key) {
-  if (val instanceof Date) {
-    return val.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+  if (val == null) return "-";
+
+  // Check if it's a Date object
+  const isDateObject = val instanceof Date || Object.prototype.toString.call(val) === '[object Date]';
+  
+  if (isDateObject) {
+    if (isNaN(val.getTime())) return "-";
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
   }
   
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-    const d = new Date(val);
-    if (!isNaN(d.getTime()) && val.length <= 10) { // Format YYYY-MM-DD
-       return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (typeof val === 'string') {
+    // Check if it's a date string like "2026-05-11T..." or "2026-05-11"
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      const dObj = new Date(val);
+      if (!isNaN(dObj.getTime())) {
+        const d = String(dObj.getDate()).padStart(2, '0');
+        const m = String(dObj.getMonth() + 1).padStart(2, '0');
+        const y = dObj.getFullYear();
+        return `${d}/${m}/${y}`;
+      }
     }
   }
 
@@ -25,7 +33,7 @@ function formatValue(val, key) {
     return `${val} min`;
   }
 
-  return String(val ?? "-");
+  return String(val);
 }
 
 /**
