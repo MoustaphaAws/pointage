@@ -555,6 +555,7 @@ router.get("/config", async (_req, res, next) => {
       requireJustification: config.require_justification !== undefined ? String(config.require_justification) === "true" : true,
       notifyOnAbsence3Days: config.notify_absence_3d !== undefined ? String(config.notify_absence_3d) === "true" : true,
       notifySuspiciousRhValidation: config.notify_suspicious_rh !== undefined ? String(config.notify_suspicious_rh) === "true" : true,
+      logoBase64: config.company_logo || "",
       // Conserver les clés originales aussi
       ...config,
     });
@@ -578,6 +579,7 @@ router.put("/config", async (req, res, next) => {
       requireJustification: "require_justification",
       notifyOnAbsence3Days: "notify_absence_3d",
       notifySuspiciousRhValidation: "notify_suspicious_rh",
+      logoBase64: "company_logo",
     };
 
     for (const [key, value] of Object.entries(body)) {

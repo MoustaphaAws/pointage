@@ -19,6 +19,7 @@ export interface AppSettings {
   requireJustification: boolean;
   notifyOnAbsence3Days: boolean;
   notifySuspiciousRhValidation: boolean;
+  logoBase64?: string;
 }
 
 export interface GlobalStats {

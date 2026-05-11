@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { query } from "./db.mjs";
 
 function formatValue(val, key) {
   if (val == null) return "-";
@@ -54,18 +55,46 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
     danger: "#dc2626"     // Red 600
   };
 
+  let logoBase64 = null;
+  try {
+    const configResult = await query("SELECT valeur FROM configurations WHERE cle = 'company_logo'");
+    if (configResult.rowCount) {
+      logoBase64 = configResult.rows[0].valeur;
+    }
+  } catch (err) {
+    console.error("Erreur de récupération du logo", err);
+  }
+
   const drawHeader = () => {
     // Petit Logo Graphique (3 carrés imbriqués pour un look moderne)
-    doc.save();
-    doc.translate(50, 45);
-    doc.rect(0, 0, 15, 15).fill(colors.brand);
-    doc.rect(18, 0, 10, 10).fill(colors.muted);
-    doc.rect(0, 18, 10, 10).fill(colors.dark);
-    doc.restore();
+    let hasDrawnLogo = false;
+    
+    if (logoBase64 && logoBase64.startsWith('data:image/')) {
+        try {
+            const base64Data = logoBase64.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            // Check size visually (assuming max width/height constraint)
+            doc.image(buffer, 50, 35, { fit: [90, 45], align: 'left' });
+            hasDrawnLogo = true;
+        } catch (e) {
+            console.error("Erreur dessin logo", e);
+        }
+    }
 
-    // Titre Entreprise
-    doc.fillColor(colors.dark).fontSize(22).font("Helvetica-Bold").text("DigitalAfrika", 85, 45);
-    doc.fillColor(colors.muted).fontSize(8).font("Helvetica").text("SYSTÈME D'EXPLOITATION RH & POINTAGE", 85, 68, { characterSpacing: 1 });
+    if (!hasDrawnLogo) {
+        doc.save();
+        doc.translate(50, 45);
+        doc.rect(0, 0, 15, 15).fill(colors.brand);
+        doc.rect(18, 0, 10, 10).fill(colors.muted);
+        doc.rect(0, 18, 10, 10).fill(colors.dark);
+        doc.restore();
+    }
+
+    // Titre Entreprise positionné de sorte à correspondre s'il y a un logo
+    const titleX = hasDrawnLogo ? 150 : 85;
+
+    doc.fillColor(colors.dark).fontSize(22).font("Helvetica-Bold").text("DigitalAfrika", titleX, 45);
+    doc.fillColor(colors.muted).fontSize(8).font("Helvetica").text("SYSTÈME D'EXPLOITATION RH & POINTAGE", titleX, 68, { characterSpacing: 1 });
     
     // Lignes de séparation
     doc.moveTo(50, 90).lineTo(545, 90).strokeColor(colors.border).lineWidth(1).stroke();

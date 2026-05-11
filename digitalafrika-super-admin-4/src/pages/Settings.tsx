@@ -323,8 +323,8 @@ export default function SettingsPage() {
                         }
                         const reader = new FileReader();
                         reader.onload = () => {
-                          localStorage.setItem('companyLogo', reader.result as string);
-                          toast.success('Logo enregistré localement');
+                          setSettings(prev => ({ ...prev, logoBase64: reader.result as string }));
+                          toast.success('Logo modifié (n\'oubliez pas de sauvegarder)');
                         };
                         reader.readAsDataURL(file);
                       }
@@ -335,20 +335,20 @@ export default function SettingsPage() {
                     Choisir un fichier
                   </div>
                 </label>
-                {localStorage.getItem('companyLogo') && (
+                {settings.logoBase64 && (
                   <Button variant="ghost" onClick={() => {
-                    localStorage.removeItem('companyLogo');
+                    setSettings(prev => ({ ...prev, logoBase64: "" }));
                     toast.success('Logo supprimé');
                   }}>
                     Supprimer
                   </Button>
                 )}
               </div>
-              {localStorage.getItem('companyLogo') && (
+              {settings.logoBase64 && (
                 <div className="mt-3 p-2 bg-white rounded-lg border border-slate-200">
                   <p className="text-xs text-slate-500 mb-2">Aperçu:</p>
                   <img 
-                    src={localStorage.getItem('companyLogo') || ''} 
+                    src={settings.logoBase64} 
                     alt="Logo" 
                     className="h-12 object-contain"
                   />
