@@ -5,6 +5,7 @@ import ExcelJS from "exceljs";
 import { query } from "../db.mjs";
 import { requireSuperAdmin } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
+import { generateReportPDF } from "../utils/pdfHelper.mjs";
 
 const router = Router();
 
@@ -955,27 +956,56 @@ router.get("/export/global", async (req, res, next) => {
     const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
     if (format === "pdf") {
+      let columns = [];
+      let title = "";
+      if (type === "absences") {
+        title = "Rapport Global des Absences";
+        columns = [
+          { header: "Matricule", key: "matricule", width: 1.2 },
+          { header: "Nom", key: "nom", width: 2.5 },
+          { header: "Service", key: "service", width: 1.5 },
+          { header: "Type", key: "type_absence", width: 1.5 },
+          { header: "Début", key: "date_debut", width: 1.2 },
+          { header: "Fin", key: "date_fin", width: 1.2 },
+          { header: "Statut", key: "statut", width: 1.2 }
+        ];
+      } else if (type === "disciplinaire") {
+        title = "Audit Disciplinaire & Sanctions";
+        columns = [
+          { header: "Matricule", key: "matricule", width: 1.2 },
+          { header: "Nom", key: "nom", width: 2.5 },
+          { header: "Type", key: "type_sanction", width: 1.5 },
+          { header: "Motif", key: "motif", width: 2.5 },
+          { header: "R.", key: "nb_retards", width: 0.5 },
+          { header: "A.", key: "nb_absences_injust", width: 0.5 },
+          { header: "Statut", key: "statut", width: 1.2 }
+        ];
+      } else {
+        title = "Registre Mensuel des Pointages";
+        columns = [
+          { header: "Matricule", key: "matricule", width: 1.2 },
+          { header: "Nom", key: "nom", width: 2.5 },
+          { header: "Date", key: "date", width: 1.2 },
+          { header: "Arrivée", key: "heure_arrivee", width: 1.2 },
+          { header: "Départ", key: "heure_depart", width: 1.2 },
+          { header: "Statut", key: "statut", width: 1.2 },
+          { header: "Retard", key: "retard_minutes", width: 1 },
+          { header: "H.Sup", key: "heures_sup_minutes", width: 1 }
+        ];
+      }
+
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${type}_${month || "all"}.pdf"`);
-      const doc = new PDFDocument({ margin: 40, size: "A4" });
-      doc.pipe(res);
-      doc.fontSize(16).text("DigitalAfrika — Rapport SuperAdmin");
-      doc.moveDown(0.5);
-      doc.fontSize(10).text(`Type: ${type}`);
-      doc.text(`Service: ${service}`);
-      doc.text(`Période: ${month || "toutes"}`);
-      doc.text(`Nombre de lignes: ${rows.length}`);
-      doc.moveDown();
-
-      const printableRows = rows.slice(0, 120);
-      for (const row of printableRows) {
-        doc.fontSize(8).text(Object.entries(row).map(([k, v]) => `${k}: ${v ?? ""}`).join(" | "));
-        doc.moveDown(0.3);
-      }
-      if (rows.length > printableRows.length) {
-        doc.moveDown().fontSize(8).text(`... ${rows.length - printableRows.length} lignes supplémentaires non affichées.`);
-      }
-      doc.end();
+      
+      await generateReportPDF(res, {
+        title,
+        columns,
+        rows,
+        metadata: {
+          period: month || "Toutes",
+          service: service === "all" ? "Tous les Services" : service
+        }
+      });
       return;
     }
 

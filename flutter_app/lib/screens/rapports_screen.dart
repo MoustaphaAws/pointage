@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
@@ -157,7 +159,7 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
               description: 'Détail des arrivées, départs, retards et heures supplémentaires de chaque employé.',
               icon: Icons.access_time_rounded,
               color: AppColors.violet600,
-              formats: const ['Excel', 'CSV'],
+              formats: const ['PDF', 'CSV'],
               exportingType: _exportingType,
               onExport: (format) => _export('Pointage', format),
             ),
@@ -244,7 +246,7 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
         case 'Pointage':
           response = await api.exportPointages(
             month: month,
-            format: format.toLowerCase() == 'excel' ? 'excel' : 'csv',
+            format: format.toLowerCase() == 'pdf' ? 'pdf' : 'csv',
           );
           break;
         case 'Absences':
@@ -263,17 +265,22 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
 
       if (response.statusCode == 200) {
         final bytes = response.data as List<int>;
-        final ext = format.toLowerCase() == 'excel' ? 'xlsx' : format.toLowerCase() == 'csv' ? 'csv' : 'pdf';
+        final ext = format.toLowerCase() == 'pdf' ? 'pdf' : 'csv';
         final safeMonth = month.replaceAll('-', '_');
         final fileName = '${type}_$safeMonth.$ext';
         
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/$fileName');
-        await file.writeAsBytes(bytes);
+        if (kIsWeb) {
+          final xFile = XFile.fromData(Uint8List.fromList(bytes), name: fileName);
+          await Share.shareXFiles([xFile], text: 'Rapport $type');
+        } else {
+          final dir = await getTemporaryDirectory();
+          final file = File('${dir.path}/$fileName');
+          await file.writeAsBytes(bytes);
+          await Share.shareXFiles([XFile(file.path)], text: 'Rapport $type');
+        }
 
         if (mounted) {
           _showSuccess(type, format, bytes.length);
-          Share.shareXFiles([XFile(file.path)], text: 'Rapport $type');
         }
       } else {
         _showError('Erreur serveur (${response.statusCode})');

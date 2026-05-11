@@ -1,7 +1,8 @@
 import { Router } from "express";
-import ExcelJS from "exceljs";
+import PDFDocument from "pdfkit";
 import { query } from "../db.mjs";
 import { requireAdmin } from "../middleware/auth.mjs";
+import { generateReportPDF } from "../utils/pdfHelper.mjs";
 
 const router = Router();
 
@@ -36,22 +37,30 @@ router.get("/pointages", requireAdmin, async (req, res, next) => {
     const headers = ["Matricule", "Nom", "Poste", "Service", "Date", "Arrivée", "Départ", "Statut", "Retard (min)", "H.Sup (min)", "Durée (min)"];
     const format = String(req.query.format || "csv").toLowerCase();
 
-    if (format === "excel") {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Pointages");
-      worksheet.columns = headers.map(h => ({ header: h, key: h, width: 15 }));
+    if (format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="pointages_${month || "all"}.pdf"`);
       
-      const excelRows = result.rows.map(r => ({
-        "Matricule": r.matricule, "Nom": r.nom, "Poste": r.poste, "Service": r.service,
-        "Date": r.date, "Arrivée": r.heure_arrivee || "", "Départ": r.heure_depart || "",
-        "Statut": r.statut, "Retard (min)": r.retard_minutes, "H.Sup (min)": r.heures_sup_minutes, "Durée (min)": r.duree_travail_minutes
-      }));
-      worksheet.addRows(excelRows);
+      const columns = [
+        { header: "Matricule", key: "matricule", width: 1.2 },
+        { header: "Nom", key: "nom", width: 2.5 },
+        { header: "Service", key: "service", width: 1.5 },
+        { header: "Date", key: "date", width: 1.2 },
+        { header: "Arrivée", key: "heure_arrivee", width: 1 },
+        { header: "Départ", key: "heure_depart", width: 1 },
+        { header: "Statut", key: "statut", width: 1 },
+        { header: "H.Sup", key: "heures_sup_minutes", width: 0.8 }
+      ];
 
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", `attachment; filename="pointages_${month || "all"}.xlsx"`);
-      await workbook.xlsx.write(res);
-      res.end();
+      await generateReportPDF(res, {
+        title: "Rapport Mensuel des Pointages",
+        columns,
+        rows: result.rows,
+        metadata: {
+          period: month || "Toutes",
+          service: req.query.service || "Tous les Services"
+        }
+      });
       return;
     }
 
@@ -103,6 +112,32 @@ router.get("/absences", requireAdmin, async (req, res, next) => {
 
     const result = await query(sql, params);
 
+    const format = String(req.query.format || "csv").toLowerCase();
+    if (format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="absences_${month || "all"}.pdf"`);
+
+      const columns = [
+        { header: "Matricule", key: "matricule", width: 1.2 },
+        { header: "Nom", key: "nom", width: 2.5 },
+        { header: "Type", key: "type_absence", width: 1.5 },
+        { header: "Début", key: "date_debut", width: 1.2 },
+        { header: "Fin", key: "date_fin", width: 1.2 },
+        { header: "Statut", key: "statut", width: 1.2 }
+      ];
+
+      await generateReportPDF(res, {
+        title: "Rapport Historique des Absences",
+        columns,
+        rows: result.rows,
+        metadata: {
+          period: month || "Toutes",
+          service: req.query.service || "Tous les Services"
+        }
+      });
+      return;
+    }
+
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="absences_${month || "all"}.csv"`);
 
@@ -148,6 +183,41 @@ router.get("/paie", requireAdmin, async (req, res, next) => {
 
     const result = await query(sql, params);
 
+    const format = String(req.query.format || "csv").toLowerCase();
+    if (format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="paie_${month || "all"}.pdf"`);
+
+      const columns = [
+        { header: "Matricule", key: "matricule", width: 1.2 },
+        { header: "Nom", key: "nom", width: 2.5 },
+        { header: "Poste", key: "poste", width: 1.5 },
+        { header: "Service", key: "service", width: 1.5 },
+        { header: "J. Trav", key: "jours_travailles", width: 0.8 },
+        { header: "H. Tot", key: "total_minutes", width: 0.8 },
+        { header: "Retards", key: "nb_retards", width: 0.8 },
+        { header: "H. Sup", key: "total_heures_sup_min", width: 0.8 }
+      ];
+
+      // Conversion minutes -> heures pour le PDF
+      const rows = result.rows.map(r => ({
+        ...r,
+        total_minutes: (r.total_minutes / 60).toFixed(1),
+        total_heures_sup_min: (r.total_heures_sup_min / 60).toFixed(1)
+      }));
+
+      await generateReportPDF(res, {
+        title: "Synthèse de Paie Mensuelle",
+        columns,
+        rows,
+        metadata: {
+          period: month || "Toutes",
+          service: req.query.service || "Tous les Services"
+        }
+      });
+      return;
+    }
+
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="paie_${month || "all"}.csv"`);
 
@@ -178,6 +248,28 @@ router.get("/disciplinaire", requireAdmin, async (req, res, next) => {
     sql += " ORDER BY s.created_at DESC";
 
     const result = await query(sql, params);
+
+    const format = String(req.query.format || "csv").toLowerCase();
+    if (format === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", 'attachment; filename="disciplinaire.pdf"');
+
+      const columns = [
+        { header: "Matricule", key: "matricule", width: 1.2 },
+        { header: "Nom", key: "nom", width: 2.5 },
+        { header: "Type Sanction", key: "type_sanction", width: 1.5 },
+        { header: "Motif", key: "motif", width: 2.5 },
+        { header: "Statut", key: "statut", width: 1.2 },
+        { header: "Mois", key: "mois_reference", width: 1 }
+      ];
+
+      await generateReportPDF(res, {
+        title: "Audit Sanctions & Discipline",
+        columns,
+        rows: result.rows
+      });
+      return;
+    }
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="disciplinaire.csv"');
