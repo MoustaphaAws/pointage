@@ -35,6 +35,34 @@ async function logDenied(req, details) {
   });
 }
 
+// ─── GET /api/justificatifs/file/:filename ─── (Authenticated: view/download file)
+router.get("/file/:filename", async (req, res, next) => {
+  try {
+    const filename = req.params.filename;
+    // Security: only allow filenames without path traversal
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ message: "Nom de fichier invalide." });
+    }
+    const filePath = path.join(UPLOAD_DIR, filename);
+    // Check file exists
+    const fs = await import('fs');
+    if (!fs.default.existsSync(filePath)) {
+      return res.status(404).json({ message: "Fichier introuvable." });
+    }
+    // Serve inline for images, attachment for PDFs
+    const ext = path.extname(filename).toLowerCase();
+    const mimeMap = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png' };
+    const mime = mimeMap[ext] || 'application/octet-stream';
+    const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+    
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `${isImage ? 'inline' : 'attachment'}; filename="${filename}"`);
+    fs.default.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── POST /api/justificatifs/upload/:absenceId ───
 router.post("/upload/:absenceId", upload.single("file"), async (req, res, next) => {
   try {

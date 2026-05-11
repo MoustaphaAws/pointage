@@ -9,6 +9,7 @@ import '../widgets/kpi_card.dart';
 import '../widgets/absence_tile.dart';
 import 'qr_display_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({super.key});
@@ -741,6 +742,21 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                       color: AppColors.sky600,
                                     ),
                                   ),
+                                  if (absence.justificatifUrl != null) ...[
+                                    const SizedBox(height: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _openJustificatif(absence.justificatifUrl!),
+                                      icon: const Icon(Icons.download_rounded, size: 14),
+                                      label: const Text('Ouvrir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.sky600,
+                                        side: BorderSide(color: AppColors.sky600.withValues(alpha: 0.3)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                        minimumSize: const Size(0, 30),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -867,6 +883,20 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         return 'En attente';
       default:
         return 'Non défini';
+    }
+  }
+
+  Future<void> _openJustificatif(String filename) async {
+    final client = ref.read(apiClientProvider);
+    final url = client?.getJustificatifFileUrl(filename);
+    if (url == null) return;
+    try {
+      final uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossible d\'ouvrir le fichier')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 

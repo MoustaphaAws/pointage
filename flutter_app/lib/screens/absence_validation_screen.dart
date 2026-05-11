@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AbsenceValidationScreen extends ConsumerStatefulWidget {
   const AbsenceValidationScreen({super.key});
@@ -516,6 +517,21 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
                                       color: AppColors.sky600,
                                     ),
                                   ),
+                                  if (absence.justificatifUrl != null) ...[
+                                    const SizedBox(height: 8),
+                                    OutlinedButton.icon(
+                                      onPressed: () => _openJustificatif(absence.justificatifUrl!),
+                                      icon: const Icon(Icons.download_rounded, size: 14),
+                                      label: const Text('Ouvrir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.sky600,
+                                        side: BorderSide(color: AppColors.sky600.withValues(alpha: 0.3)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                        minimumSize: const Size(0, 30),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -638,6 +654,20 @@ class _AbsenceValidationScreenState extends ConsumerState<AbsenceValidationScree
       case 'rejete': return 'Rejeté ✗';
       case 'en_attente': return 'En attente';
       default: return 'Non défini';
+    }
+  }
+
+  Future<void> _openJustificatif(String filename) async {
+    final client = ref.read(apiClientProvider);
+    final url = client?.getJustificatifFileUrl(filename);
+    if (url == null) return;
+    try {
+      final uri = Uri.parse(url);
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossible d\'ouvrir le fichier')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 

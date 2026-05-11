@@ -260,6 +260,9 @@ class Absence {
   final String status; // 'en_attente', 'approuvee', 'rejetee', 'annulee'
   final String? motifRejet;
   final String? justificatifUrl;
+  final String? justificatifId;
+  final String? justificatifNom;
+  final String? justificatifMime;
   final String? justificatifStatus; // 'en_attente', 'valide', 'rejete'
   final String? validePar;
   final String? dateValidation;
@@ -280,6 +283,9 @@ class Absence {
     required this.status,
     this.motifRejet,
     this.justificatifUrl,
+    this.justificatifId,
+    this.justificatifNom,
+    this.justificatifMime,
     this.justificatifStatus,
     this.validePar,
     this.dateValidation,
@@ -301,6 +307,9 @@ class Absence {
         status: json['statut'] ?? json['status'] ?? 'en_attente',
         motifRejet: json['motifRejet'] ?? json['motive'],
         justificatifUrl: json['justificatifUrl'],
+        justificatifId: json['justificatifId'],
+        justificatifNom: json['justificatifNom'],
+        justificatifMime: json['justificatifMime'],
         justificatifStatus: json['justificatifStatus'],
         validePar: json['validePar'],
         dateValidation: json['dateValidation'],
@@ -312,7 +321,9 @@ class Absence {
   bool get isRejected => status == 'rejetee';
   bool get isCancelled => status == 'annulee';
   bool get canCancel => isPending;
-  bool get hasJustificatif => justificatifUrl != null;
+  bool get hasJustificatif => justificatifUrl != null && justificatifUrl!.isNotEmpty;
+  bool get isJustificatifImage => justificatifMime != null && justificatifMime!.startsWith('image/');
+  bool get isJustificatifPdf => justificatifMime == 'application/pdf';
 }
 
 // ─── JourFerie ───

@@ -165,6 +165,23 @@ class ApiClient {
   Future<Response> rejectJustificatif(String id, String motif) =>
       _dio.put('/justificatifs/$id/reject', data: {'motifRejet': motif});
 
+  /// Build the full URL to view/download a justificatif file
+  String getJustificatifFileUrl(String filename) {
+    return '$_baseUrl/justificatifs/file/$filename';
+  }
+
+  /// Get the auth headers for authenticated file requests
+  Map<String, String> get authHeaders => {
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
+
+  /// Download justificatif file as bytes
+  Future<Response> downloadJustificatifFile(String filename) =>
+      _dio.get(
+        '/justificatifs/file/$filename',
+        options: Options(responseType: ResponseType.bytes),
+      );
+
   // ════════════════════════════════════════════════════════════
   // 7. EMPLOYÉS (Admin)
   // ════════════════════════════════════════════════════════════
@@ -268,23 +285,23 @@ class ApiClient {
       _dio.get('/exports/pointages', queryParameters: {
         if (month != null) 'month': month,
         'format': format,
-      });
+      }, options: Options(responseType: ResponseType.bytes));
 
   Future<Response> exportAbsences({String? month, String format = 'pdf'}) =>
       _dio.get('/exports/absences', queryParameters: {
         if (month != null) 'month': month,
         'format': format,
-      });
+      }, options: Options(responseType: ResponseType.bytes));
 
   Future<Response> exportPaie({String? month}) =>
       _dio.get('/exports/paie', queryParameters: {
         if (month != null) 'month': month,
-      });
+      }, options: Options(responseType: ResponseType.bytes));
 
   Future<Response> exportDisciplinaire({String? employeeId}) =>
       _dio.get('/exports/disciplinaire', queryParameters: {
         if (employeeId != null) 'employeeId': employeeId,
-      });
+      }, options: Options(responseType: ResponseType.bytes));
 
   // ════════════════════════════════════════════════════════════
   // 14. STATISTIQUES

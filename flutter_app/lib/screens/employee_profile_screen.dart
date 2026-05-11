@@ -296,7 +296,6 @@ class _InfoRow extends StatelessWidget {
       leading: Icon(icon, color: AppColors.slate500),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryBlack)),
       subtitle: Text(value, style: const TextStyle(fontSize: 12, color: AppColors.slate500)),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.slate500),
     );
   }
 }

@@ -1155,7 +1155,7 @@ router.get("/rh-absences", async (_req, res, next) => {
        JOIN employes e ON e.id = a.employe_id
        JOIN types_absence t ON t.id = a.type_absence_id
        LEFT JOIN employes v ON v.id = a.valide_par
-       ORDER BY a.date_debut DESC
+       ORDER BY COALESCE(a.date_validation, a.created_at) DESC
        LIMIT 100`
     );
     res.json(result.rows.map((r) => ({

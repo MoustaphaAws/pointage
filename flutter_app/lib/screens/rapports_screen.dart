@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/data_providers.dart';
 import '../theme/app_theme.dart';
@@ -259,8 +262,18 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
       }
 
       if (response.statusCode == 200) {
+        final bytes = response.data as List<int>;
+        final ext = format.toLowerCase() == 'excel' ? 'xlsx' : format.toLowerCase() == 'csv' ? 'csv' : 'pdf';
+        final safeMonth = month.replaceAll('-', '_');
+        final fileName = '${type}_$safeMonth.$ext';
+        
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+
         if (mounted) {
-          _showSuccess(type, format, response);
+          _showSuccess(type, format, bytes.length);
+          Share.shareXFiles([XFile(file.path)], text: 'Rapport $type');
         }
       } else {
         _showError('Erreur serveur (${response.statusCode})');
@@ -274,14 +287,7 @@ class _RapportsScreenState extends ConsumerState<RapportsScreen> {
     }
   }
 
-  void _showSuccess(String type, String format, Response response) {
-    // Determine data size for feedback
-    final dataLength = response.data is String 
-        ? (response.data as String).length 
-        : response.data is List<int> 
-            ? (response.data as List<int>).length 
-            : 0;
-    
+  void _showSuccess(String type, String format, int dataLength) {
     final sizeKb = (dataLength / 1024).toStringAsFixed(1);
 
     ScaffoldMessenger.of(context).showSnackBar(

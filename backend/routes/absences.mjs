@@ -59,7 +59,7 @@ router.post("/", async (req, res, next) => {
 router.get("/me", async (req, res, next) => {
   try {
     const { status } = req.query;
-    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url
+    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url, j.id as justificatif_id, j.nom_fichier as justificatif_nom, j.type_mime as justificatif_mime
                FROM absences a
                JOIN types_absence t ON t.id = a.type_absence_id
                JOIN employes e ON e.id = a.employe_id
@@ -106,7 +106,7 @@ router.put("/:id/cancel", async (req, res, next) => {
 router.get("/all", requireAdmin, async (req, res, next) => {
   try {
     const { service, status } = req.query;
-    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, e.email, e.service_id, j.chemin_fichier as justificatif_url
+    let sql = `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, e.email, e.service_id, j.chemin_fichier as justificatif_url, j.id as justificatif_id, j.nom_fichier as justificatif_nom, j.type_mime as justificatif_mime
                FROM absences a
                JOIN types_absence t ON t.id = a.type_absence_id
                JOIN employes e ON e.id = a.employe_id
@@ -225,7 +225,7 @@ router.get("/employee/:id", requireAdmin, async (req, res, next) => {
       return res.status(403).json({ message: "Accès interdit hors périmètre." });
     }
     const result = await query(
-      `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url
+      `SELECT a.*, t.libelle AS type_label, e.first_name, e.last_name, j.chemin_fichier as justificatif_url, j.id as justificatif_id, j.nom_fichier as justificatif_nom, j.type_mime as justificatif_mime
        FROM absences a
        JOIN types_absence t ON t.id = a.type_absence_id
        JOIN employes e ON e.id = a.employe_id
@@ -257,6 +257,9 @@ function formatAbsence(a, typeLabel, emp) {
     statut: a.statut,
     motifRejet: a.motif_rejet,
     justificatifUrl: a.justificatif_url || null,
+    justificatifId: a.justificatif_id || null,
+    justificatifNom: a.justificatif_nom || null,
+    justificatifMime: a.justificatif_mime || null,
     validePar: a.valide_par,
     dateValidation: a.date_validation,
     createdAt: a.created_at,
