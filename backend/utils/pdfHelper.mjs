@@ -126,8 +126,8 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
     doc.rect(startX, y, tableWidth, 32).fill(colors.dark);
     let currentX = startX;
     columns.forEach((col, i) => {
-      doc.fillColor("#ffffff").fontSize(9).font("Helvetica-Bold").text(col.header.toUpperCase(), currentX + 10, y + 11, {
-        width: colWidths[i] - 20,
+      doc.fillColor("#ffffff").fontSize(9).font("Helvetica-Bold").text(col.header.toUpperCase(), currentX + 5, y + 11, {
+        width: colWidths[i] - 10,
         align: "left"
       });
       currentX += colWidths[i];
@@ -172,8 +172,8 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
             else if (s.includes('present') || s.includes('approuv')) cellColor = colors.success;
         }
 
-        doc.fillColor(cellColor).fontSize(8.5).font("Helvetica").text(displayVal, currentX + 10, currentY + 9, {
-          width: colWidths[i] - 20,
+        doc.fillColor(cellColor).fontSize(8.5).font("Helvetica").text(displayVal, currentX + 5, currentY + 9, {
+          width: colWidths[i] - 10,
           align: "left",
           lineBreak: false,
           ellipsis: true
