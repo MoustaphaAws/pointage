@@ -18,6 +18,10 @@ export async function runMigrations() {
     ALTER TABLE employes
     ADD COLUMN IF NOT EXISTS admin_permissions JSONB DEFAULT '{}'::jsonb
   `);
+  await query(`
+    ALTER TABLE audit_logs
+    ADD COLUMN IF NOT EXISTS entite_id UUID
+  `);
   console.log("✅ Migrations OK");
 }
 

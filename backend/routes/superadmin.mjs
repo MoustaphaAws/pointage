@@ -7,6 +7,22 @@ import { writeAuditLog, getActor } from "../utils/audit.mjs";
 import { generateReportPDF } from "../utils/pdfHelper.mjs";
 import { formatTimeHHMM } from "../utils/formatDbTime.mjs";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeJsonbObject(val) {
+  if (val == null) return {};
+  if (typeof val === "object" && !Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 const router = Router();
 
 // Toutes les routes sont protégées par requireSuperAdmin
@@ -299,6 +315,9 @@ router.get("/employees/:id", async (req, res, next) => {
     if (!employeeId) {
       return res.status(400).json({ message: "Identifiant invalide." });
     }
+    if (!UUID_RE.test(employeeId)) {
+      return res.status(400).json({ message: "Identifiant employé invalide." });
+    }
 
     const profileResult = await query(
       `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
@@ -306,7 +325,7 @@ router.get("/employees/:id", async (req, res, next) => {
               e.admin_permissions, e.created_at
        FROM employes e
        JOIN services s ON s.id = e.service_id
-       WHERE e.id = $1 AND e.role IN ('employee', 'admin')
+       WHERE e.id = $1::uuid AND e.role IN ('employee', 'admin')
        LIMIT 1`,
       [employeeId]
     );
@@ -315,15 +334,24 @@ router.get("/employees/:id", async (req, res, next) => {
     }
 
     const row = profileResult.rows[0];
+    const adminPerms =
+      row.role === "admin" ? normalizeJsonbObject(row.admin_permissions) : undefined;
 
-    const [absencesResult, pointagesResult, sanctionsResult, activityResult] = await Promise.all([
+    const emptyRows = () => ({ rows: [], rowCount: 0 });
+    const unwrapQuery = (label, result) => {
+      if (result.status === "fulfilled") return result.value;
+      console.error(`GET /admin/employees/:id — ${label}:`, result.reason?.message || result.reason);
+      return emptyRows();
+    };
+
+    const settled = await Promise.allSettled([
       query(
         `SELECT a.id, t.libelle AS type, a.date_debut, a.date_fin, a.statut, a.motif, a.created_at,
                 COALESCE(v.first_name || ' ' || v.last_name, '') AS valide_par
          FROM absences a
          JOIN types_absence t ON t.id = a.type_absence_id
          LEFT JOIN employes v ON v.id = a.valide_par
-         WHERE a.employe_id = $1
+         WHERE a.employe_id = $1::uuid
          ORDER BY a.date_debut DESC
          LIMIT 100`,
         [employeeId]
@@ -332,7 +360,7 @@ router.get("/employees/:id", async (req, res, next) => {
         `SELECT id, date, heure_arrivee, heure_depart, statut,
                 duree_travail_minutes, heures_sup_minutes
          FROM pointages
-         WHERE employe_id = $1
+         WHERE employe_id = $1::uuid
          ORDER BY date DESC
          LIMIT 120`,
         [employeeId]
@@ -342,7 +370,7 @@ router.get("/employees/:id", async (req, res, next) => {
                 COALESCE(d.first_name || ' ' || d.last_name, '') AS decisionnee_par
          FROM sanctions s
          LEFT JOIN employes d ON d.id = s.traite_par
-         WHERE s.employe_id = $1
+         WHERE s.employe_id = $1::uuid
          ORDER BY s.created_at DESC
          LIMIT 100`,
         [employeeId]
@@ -350,14 +378,17 @@ router.get("/employees/:id", async (req, res, next) => {
       query(
         `SELECT id, created_at, action, entite, details
          FROM audit_logs
-         WHERE user_id = $1
-            OR entite_id = $1
-            OR (details->>'target_user_id') = $1
+         WHERE user_id = $1::uuid OR entite_id = $1::uuid
          ORDER BY created_at DESC
          LIMIT 100`,
         [employeeId]
       ),
     ]);
+
+    const absencesResult = unwrapQuery("absences", settled[0]);
+    const pointagesResult = unwrapQuery("pointages", settled[1]);
+    const sanctionsResult = unwrapQuery("sanctions", settled[2]);
+    const activityResult = unwrapQuery("audit_logs", settled[3]);
 
     const totalAbsences = absencesResult.rowCount;
     const totalPointages = pointagesResult.rowCount;
@@ -391,7 +422,7 @@ router.get("/employees/:id", async (req, res, next) => {
         service: row.service,
         poste: row.poste || "",
         active: row.active,
-        adminPermissions: row.role === "admin" ? (row.admin_permissions || {}) : undefined,
+        adminPermissions: adminPerms,
         createdAt: row.created_at,
       },
       stats: {
@@ -402,14 +433,17 @@ router.get("/employees/:id", async (req, res, next) => {
         heuresTravaillees: toHours(totalMinutes),
         heuresSup: toHours(totalSupMinutes),
       },
-      activity: activityResult.rows.map((log) => ({
-        id: String(log.id),
-        timestamp: log.created_at,
-        action: log.action,
-        actor: log.details?.user_name || "Système",
-        target: log.entite,
-        details: log.details?.details || "",
-      })),
+      activity: activityResult.rows.map((log) => {
+        const det = normalizeJsonbObject(log.details);
+        return {
+          id: String(log.id),
+          timestamp: log.created_at,
+          action: log.action,
+          actor: det.user_name || "Système",
+          target: log.entite,
+          details: det.details != null ? String(det.details) : "",
+        };
+      }),
       absences: absencesResult.rows.map((a) => ({
         id: String(a.id),
         type: a.type,
