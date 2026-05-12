@@ -57,7 +57,10 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
 
   let logoBase64 = null;
   try {
-    const configResult = await query("SELECT valeur FROM configurations WHERE cle = 'company_logo'");
+    let configResult = await query("SELECT valeur FROM configurations WHERE cle = 'company_logo'");
+    if (!configResult.rowCount) {
+      configResult = await query("SELECT valeur FROM configurations WHERE cle = 'logoBase64'");
+    }
     if (configResult.rowCount) {
       logoBase64 = configResult.rows[0].valeur;
     }
@@ -69,13 +72,19 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
     // Petit Logo Graphique (3 carrés imbriqués pour un look moderne)
     let hasDrawnLogo = false;
     
-    if (logoBase64 && logoBase64.startsWith('data:image/')) {
+    if (logoBase64) {
         try {
-            const base64Data = logoBase64.split(',')[1];
-            const buffer = Buffer.from(base64Data, 'base64');
-            // Check size visually (assuming max width/height constraint)
-            doc.image(buffer, 50, 35, { fit: [90, 45], align: 'left' });
-            hasDrawnLogo = true;
+            let buffer = null;
+            if (logoBase64.startsWith("data:image/")) {
+              const base64Data = logoBase64.split(",")[1];
+              if (base64Data) buffer = Buffer.from(base64Data, "base64");
+            } else {
+              buffer = Buffer.from(logoBase64, "base64");
+            }
+            if (buffer?.length) {
+              doc.image(buffer, 50, 35, { fit: [90, 45], align: "left" });
+              hasDrawnLogo = true;
+            }
         } catch (e) {
             console.error("Erreur dessin logo", e);
         }

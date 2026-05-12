@@ -1,6 +1,5 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
-import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import { query } from "../db.mjs";
 import { requireSuperAdmin } from "../middleware/auth.mjs";
@@ -546,6 +545,16 @@ router.get("/config", async (_req, res, next) => {
         config[row.cle] = row.valeur;
       }
     }
+    const {
+      company_logo: companyLogoRaw,
+      logoBase64: legacyLogoRaw,
+      ...configRest
+    } = config;
+    const logoBase64 =
+      (typeof companyLogoRaw === "string" && companyLogoRaw) ||
+      (typeof legacyLogoRaw === "string" && legacyLogoRaw) ||
+      "";
+
     // Mapper les clés françaises vers les clés anglaises attendues par le frontend
     res.json({
       lateThreshold: config.seuil_rappel_retards ?? 3,
@@ -555,9 +564,9 @@ router.get("/config", async (_req, res, next) => {
       requireJustification: config.require_justification !== undefined ? String(config.require_justification) === "true" : true,
       notifyOnAbsence3Days: config.notify_absence_3d !== undefined ? String(config.notify_absence_3d) === "true" : true,
       notifySuspiciousRhValidation: config.notify_suspicious_rh !== undefined ? String(config.notify_suspicious_rh) === "true" : true,
-      logoBase64: config.company_logo || "",
-      // Conserver les clés originales aussi
-      ...config,
+      logoBase64,
+      // Conserver les autres clés (sans dupliquer le logo en base64 deux fois)
+      ...configRest,
     });
   } catch (err) {
     next(err);
@@ -591,6 +600,10 @@ router.put("/config", async (req, res, next) => {
          ON CONFLICT (cle) DO UPDATE SET valeur = $1, modifie_par = $2, updated_at = NOW()`,
         [dbValue, req.auth.sub, dbKey]
       );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "logoBase64")) {
+      await query("DELETE FROM configurations WHERE cle = 'logoBase64'");
     }
 
     // ── Propager les horaires sur tous les employés/admins ──
@@ -958,55 +971,64 @@ router.get("/export/global", async (req, res, next) => {
     const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
     if (format === "pdf") {
-      let columns = [];
-      let title = "";
-      if (type === "absences") {
-        title = "Rapport Global des Absences";
-        columns = [
-          { header: "Matricule", key: "matricule", width: 1.2 },
-          { header: "Nom", key: "nom", width: 2.5 },
-          { header: "Service", key: "service", width: 1.5 },
-          { header: "Type", key: "type_absence", width: 1.5 },
-          { header: "Début", key: "date_debut", width: 1.2 },
-          { header: "Fin", key: "date_fin", width: 1.2 },
-          { header: "Statut", key: "statut", width: 1.2 }
-        ];
-      } else if (type === "disciplinaire") {
-        title = "Audit Disciplinaire & Sanctions";
-        columns = [
-          { header: "Matricule", key: "matricule", width: 1.2 },
-          { header: "Nom", key: "nom", width: 2.5 },
-          { header: "Type", key: "type_sanction", width: 1.5 },
-          { header: "Motif", key: "motif", width: 2.5 },
-          { header: "R.", key: "nb_retards", width: 0.5 },
-          { header: "A.", key: "nb_absences_injust", width: 0.5 },
-          { header: "Statut", key: "statut", width: 1.2 }
-        ];
-      } else {
-        title = "Registre Mensuel des Pointages";
-        columns = [
-          { header: "Matricule", key: "matricule", width: 1.2 },
-          { header: "Nom", key: "nom", width: 2.5 },
-          { header: "Date", key: "date", width: 1.2 },
-          { header: "Arrivée", key: "heure_arrivee", width: 1.2 },
-          { header: "Départ", key: "heure_depart", width: 1.2 },
-          { header: "Statut", key: "statut", width: 1.2 },
-          { header: "Retard", key: "retard_minutes", width: 1 },
-          { header: "H.Sup", key: "heures_sup_minutes", width: 1 }
-        ];
-      }
-
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename="${type}_${month || "all"}.pdf"`);
-      
+
+      const serviceLabel = service === "all" ? "Tous les Services" : service;
+      const periodLabel = month || "Toutes";
+
+      if (type === "absences") {
+        await generateReportPDF(res, {
+          title: "Rapport d'absences consolidé",
+          columns: [
+            { header: "Matricule", key: "matricule", width: 1.2 },
+            { header: "Nom", key: "nom", width: 2.2 },
+            { header: "Service", key: "service", width: 1.4 },
+            { header: "Type", key: "type_absence", width: 1.4 },
+            { header: "Début", key: "date_debut", width: 1.1 },
+            { header: "Fin", key: "date_fin", width: 1.1 },
+            { header: "Statut", key: "statut", width: 1 },
+          ],
+          rows,
+          metadata: { period: periodLabel, service: serviceLabel },
+        });
+        return;
+      }
+
+      if (type === "disciplinaire") {
+        await generateReportPDF(res, {
+          title: "Audit disciplinaire & sanctions",
+          columns: [
+            { header: "Matricule", key: "matricule", width: 1.2 },
+            { header: "Nom", key: "nom", width: 2 },
+            { header: "Service", key: "service", width: 1.3 },
+            { header: "Type sanction", key: "type_sanction", width: 1.4 },
+            { header: "Motif", key: "motif", width: 2 },
+            { header: "Statut", key: "statut", width: 1 },
+            { header: "Mois réf.", key: "mois_reference", width: 1 },
+          ],
+          rows,
+          metadata: { period: periodLabel, service: serviceLabel },
+        });
+        return;
+      }
+
+      // pointages (défaut)
       await generateReportPDF(res, {
-        title,
-        columns,
+        title: "Registre des pointages mensuel",
+        columns: [
+          { header: "Matricule", key: "matricule", width: 1.2 },
+          { header: "Nom", key: "nom", width: 2 },
+          { header: "Service", key: "service", width: 1.4 },
+          { header: "Date", key: "date", width: 1.1 },
+          { header: "Arrivée", key: "heure_arrivee", width: 0.9 },
+          { header: "Départ", key: "heure_depart", width: 0.9 },
+          { header: "Statut", key: "statut", width: 1 },
+          { header: "Retard (min)", key: "retard_minutes", width: 0.85 },
+          { header: "H. sup (min)", key: "heures_sup_minutes", width: 0.85 },
+        ],
         rows,
-        metadata: {
-          period: month || "Toutes",
-          service: service === "all" ? "Tous les Services" : service
-        }
+        metadata: { period: periodLabel, service: serviceLabel },
       });
       return;
     }
@@ -1187,7 +1209,7 @@ router.get("/rh-absences", async (_req, res, next) => {
        JOIN employes e ON e.id = a.employe_id
        JOIN types_absence t ON t.id = a.type_absence_id
        LEFT JOIN employes v ON v.id = a.valide_par
-       ORDER BY COALESCE(a.date_validation, a.created_at) DESC
+       ORDER BY a.date_debut DESC
        LIMIT 100`
     );
     res.json(result.rows.map((r) => ({

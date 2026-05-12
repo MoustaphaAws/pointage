@@ -19,6 +19,7 @@ export interface AppSettings {
   requireJustification: boolean;
   notifyOnAbsence3Days: boolean;
   notifySuspiciousRhValidation: boolean;
+  /** Data URL (PNG/JPEG) — stocké côté serveur sous `company_logo` */
   logoBase64?: string;
 }
 
