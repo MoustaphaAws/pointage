@@ -5,6 +5,7 @@ import { query } from "../db.mjs";
 import { requireSuperAdmin } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
 import { generateReportPDF } from "../utils/pdfHelper.mjs";
+import { formatTimeHHMM } from "../utils/formatDbTime.mjs";
 
 const router = Router();
 
@@ -422,8 +423,8 @@ router.get("/employees/:id", async (req, res, next) => {
       pointages: pointagesResult.rows.map((p) => ({
         id: String(p.id),
         date: p.date,
-        entree: p.heure_arrivee ? new Date(p.heure_arrivee).toISOString().slice(11, 16) : "",
-        sortie: p.heure_depart ? new Date(p.heure_depart).toISOString().slice(11, 16) : "",
+        entree: formatTimeHHMM(p.heure_arrivee),
+        sortie: formatTimeHHMM(p.heure_depart),
         type: p.statut,
         heuresTravaillees: Number((Number(p.duree_travail_minutes || 0) / 60).toFixed(2)),
         heuresSup: Number((Number(p.heures_sup_minutes || 0) / 60).toFixed(2)),

@@ -43,7 +43,13 @@ export default function EmployeeDetailsPage() {
         setPointages(data.pointages);
         setSanctions(data.sanctions);
       })
-      .catch(() => toast.error("Impossible de charger la fiche employé"))
+      .catch((err: unknown) => {
+        const msg =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        toast.error(msg || "Impossible de charger la fiche employé");
+      })
       .finally(() => setLoading(false));
   }, [id]);
 

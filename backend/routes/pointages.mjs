@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.mjs";
 import { requireAdmin, requireCanPoint } from "../middleware/auth.mjs";
 import { randomUUID } from "crypto";
+import { formatTimeHHMM } from "../utils/formatDbTime.mjs";
 
 const router = Router();
 
@@ -36,8 +37,8 @@ router.get("/today", async (req, res, next) => {
     res.json({
       id: p.id,
       date: p.date,
-      checkIn: p.heure_arrivee ? p.heure_arrivee.toISOString().slice(11, 16) : null,
-      checkOut: p.heure_depart ? p.heure_depart.toISOString().slice(11, 16) : null,
+      checkIn: formatTimeHHMM(p.heure_arrivee) || null,
+      checkOut: formatTimeHHMM(p.heure_depart) || null,
       status: p.statut,
       delayMinutes: p.retard_minutes,
       heuresSupMinutes: p.heures_sup_minutes,
@@ -363,15 +364,13 @@ router.post("/qr/validate", async (req, res, next) => {
 
 // ─── Helper ───
 function formatPointage(p) {
+  const inStr = formatTimeHHMM(p.heure_arrivee);
+  const outStr = formatTimeHHMM(p.heure_depart);
   return {
     id: p.id,
     date: p.date,
-    checkIn: p.heure_arrivee
-      ? (p.heure_arrivee instanceof Date ? p.heure_arrivee.toISOString().slice(11, 16) : String(p.heure_arrivee).slice(0, 5))
-      : null,
-    checkOut: p.heure_depart
-      ? (p.heure_depart instanceof Date ? p.heure_depart.toISOString().slice(11, 16) : String(p.heure_depart).slice(0, 5))
-      : null,
+    checkIn: inStr || null,
+    checkOut: outStr || null,
     status: p.statut,
     delayMinutes: p.retard_minutes,
     heuresSupMinutes: p.heures_sup_minutes,
