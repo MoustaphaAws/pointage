@@ -23,6 +23,66 @@ function normalizeJsonbObject(val) {
   return {};
 }
 
+/** Minutes depuis minuit pour une valeur TIME / string "HH:MM:SS". */
+function timeFieldToMinutes(t) {
+  if (t == null) return null;
+  const s = String(t).trim();
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function asDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Jour civil local à partir d'une DATE PostgreSQL (évite décalage UTC). */
+function parsePgDateOnly(val) {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+  }
+  const s = String(val).slice(0, 10);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+}
+
+/**
+ * Minutes travaillées : colonne BDD si renseignée, sinon écart arrivée–départ,
+ * sinon arrivée seule → jusqu'à l'heure de fin prévue (contrat).
+ */
+function effectiveWorkMinutes(p, heureFinEmp) {
+  const stored = Number(p.duree_travail_minutes ?? 0);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+
+  const arr = asDate(p.heure_arrivee);
+  const dep = asDate(p.heure_depart);
+  if (arr && dep && dep >= arr) {
+    return Math.floor((dep.getTime() - arr.getTime()) / 60000);
+  }
+
+  const finM = timeFieldToMinutes(heureFinEmp);
+  if (arr && finM != null && !dep) {
+    const day = parsePgDateOnly(p.date);
+    if (day) {
+      const end = new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(finM / 60), finM % 60, 0, 0);
+      if (end > arr) return Math.floor((end.getTime() - arr.getTime()) / 60000);
+    }
+  }
+  return 0;
+}
+
+/** Affichage fiche employé : uniquement présent / retard. */
+function pointageDisplayType(p) {
+  const s = String(p.statut || "").toLowerCase();
+  if (s === "retard" || Number(p.retard_minutes || 0) > 0) return "retard";
+  return "present";
+}
+
 const router = Router();
 
 // Toutes les routes sont protégées par requireSuperAdmin
@@ -322,7 +382,8 @@ router.get("/employees/:id", async (req, res, next) => {
     const profileResult = await query(
       `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
               s.nom AS service, e.poste, e.actif AS active,
-              e.admin_permissions, e.created_at
+              e.admin_permissions, e.created_at,
+              e.heure_debut, e.heure_fin
        FROM employes e
        JOIN services s ON s.id = e.service_id
        WHERE e.id = $1::uuid AND e.role IN ('employee', 'admin')
@@ -357,10 +418,15 @@ router.get("/employees/:id", async (req, res, next) => {
         [employeeId]
       ),
       query(
-        `SELECT id, date, heure_arrivee, heure_depart, statut,
+        `SELECT id, date, heure_arrivee, heure_depart, statut, retard_minutes,
                 duree_travail_minutes, heures_sup_minutes
          FROM pointages
          WHERE employe_id = $1::uuid
+           AND (
+             heure_arrivee IS NOT NULL
+             OR heure_depart IS NOT NULL
+             OR statut IN ('present', 'retard')
+           )
          ORDER BY date DESC
          LIMIT 120`,
         [employeeId]
@@ -401,8 +467,9 @@ router.get("/employees/:id", async (req, res, next) => {
       return acc + (Number.isFinite(diff) && diff > 0 ? diff : 0);
     }, 0);
 
+    const heureFinEmp = row.heure_fin;
     const totalMinutes = pointagesResult.rows.reduce(
-      (acc, p) => acc + Number(p.duree_travail_minutes || 0),
+      (acc, p) => acc + effectiveWorkMinutes(p, heureFinEmp),
       0
     );
     const totalSupMinutes = pointagesResult.rows.reduce(
@@ -454,16 +521,19 @@ router.get("/employees/:id", async (req, res, next) => {
         validePar: a.valide_par || "",
         createdAt: a.created_at,
       })),
-      pointages: pointagesResult.rows.map((p) => ({
-        id: String(p.id),
-        date: p.date,
-        entree: formatTimeHHMM(p.heure_arrivee),
-        sortie: formatTimeHHMM(p.heure_depart),
-        type: p.statut,
-        heuresTravaillees: Number((Number(p.duree_travail_minutes || 0) / 60).toFixed(2)),
-        heuresSup: Number((Number(p.heures_sup_minutes || 0) / 60).toFixed(2)),
-        commentaire: "",
-      })),
+      pointages: pointagesResult.rows.map((p) => {
+        const workMin = effectiveWorkMinutes(p, heureFinEmp);
+        return {
+          id: String(p.id),
+          date: p.date,
+          entree: formatTimeHHMM(p.heure_arrivee),
+          sortie: formatTimeHHMM(p.heure_depart),
+          type: pointageDisplayType(p),
+          heuresTravaillees: Number((workMin / 60).toFixed(2)),
+          heuresSup: Number((Number(p.heures_sup_minutes || 0) / 60).toFixed(2)),
+          commentaire: "",
+        };
+      }),
       sanctions: sanctionsResult.rows.map((s) => ({
         id: String(s.id),
         type: s.type_sanction,
@@ -593,12 +663,17 @@ router.get("/config", async (_req, res, next) => {
     // Mapper les clés françaises vers les clés anglaises attendues par le frontend
     res.json({
       lateThreshold: config.seuil_rappel_retards ?? 3,
-      absenceThreshold: config.seuil_avertissement ?? 5,
+      lateWarningThreshold: config.seuil_avertissement ?? 5,
+      lateSanctionThreshold: config.seuil_sanction ?? 6,
+      absenceThreshold: config.seuil_absence_avert ?? 1,
+      absenceSanctionThreshold: config.seuil_absence_sanction ?? 2,
       defaultEntry: config.heure_debut_defaut ?? "08:00",
       defaultExit: config.heure_fin_defaut ?? "17:00",
       requireJustification: config.require_justification !== undefined ? String(config.require_justification) === "true" : true,
       notifyOnAbsence3Days: config.notify_absence_3d !== undefined ? String(config.notify_absence_3d) === "true" : true,
       notifySuspiciousRhValidation: config.notify_suspicious_rh !== undefined ? String(config.notify_suspicious_rh) === "true" : true,
+      dashboardLateMinutesMin: Math.max(0, parseInt(String(config.seuil_retard_dashboard_min ?? 15), 10) || 15),
+      overtimeHourlyRateFcfa: Math.max(0, parseInt(String(config.cout_heure_sup_fcfa ?? 4000), 10) || 4000),
       logoBase64,
       // Conserver les autres clés (sans dupliquer le logo en base64 deux fois)
       ...configRest,
@@ -617,13 +692,18 @@ router.put("/config", async (req, res, next) => {
     // Mapper clés anglaises → clés françaises
     const keyMap = {
       lateThreshold: "seuil_rappel_retards",
-      absenceThreshold: "seuil_avertissement",
+      lateWarningThreshold: "seuil_avertissement",
+      lateSanctionThreshold: "seuil_sanction",
+      absenceThreshold: "seuil_absence_avert",
+      absenceSanctionThreshold: "seuil_absence_sanction",
       defaultEntry: "heure_debut_defaut",
       defaultExit: "heure_fin_defaut",
       requireJustification: "require_justification",
       notifyOnAbsence3Days: "notify_absence_3d",
       notifySuspiciousRhValidation: "notify_suspicious_rh",
       logoBase64: "company_logo",
+      dashboardLateMinutesMin: "seuil_retard_dashboard_min",
+      overtimeHourlyRateFcfa: "cout_heure_sup_fcfa",
     };
 
     for (const [key, value] of Object.entries(body)) {
@@ -832,10 +912,21 @@ router.get("/stats/global", async (_req, res, next) => {
     const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
 
+    const dashCfg = await query(
+      "SELECT cle, valeur FROM configurations WHERE cle IN ('seuil_retard_dashboard_min','cout_heure_sup_fcfa')"
+    );
+    const dashMap = {};
+    for (const r of dashCfg.rows) dashMap[r.cle] = r.valeur;
+    const lateMinThreshold = Math.max(0, parseInt(String(dashMap.seuil_retard_dashboard_min ?? "15"), 10) || 15);
+    const overtimeRateFcfa = Math.max(0, parseInt(String(dashMap.cout_heure_sup_fcfa ?? "4000"), 10) || 4000);
+
     const lateToday = await query(
       `SELECT COUNT(*)::int AS total FROM pointages p
        JOIN employes e ON e.id = p.employe_id
-       WHERE p.date = CURRENT_DATE AND p.statut = 'retard'`
+       WHERE p.date = CURRENT_DATE
+         AND p.statut = 'retard'
+         AND COALESCE(p.retard_minutes, 0) >= $1`,
+      [lateMinThreshold]
     );
 
     const pendingAbsences = await query(
@@ -847,6 +938,9 @@ router.get("/stats/global", async (_req, res, next) => {
        FROM pointages WHERE date >= $1 AND date <= $2`,
       [startOfMonth, endOfMonth]
     );
+
+    const overtimeMinutes = Number(overtime.rows[0].total || 0);
+    const overtimeHours = Math.round((overtimeMinutes / 60) * 10) / 10;
 
     const total = totalUsers.rows[0].total || 1;
     const presentToday = await query(
@@ -907,8 +1001,10 @@ router.get("/stats/global", async (_req, res, next) => {
       absenteeismRate: Math.max(0, Math.min(100, absenteeismRate)),
       pendingAbsences: pendingAbsences.rows[0].total,
       lateArrivalsCount: lateToday.rows[0].total,
-      monthlyOvertimeHours: Math.floor(overtime.rows[0].total / 60),
-      estimatedOvertimeCost: Math.floor(overtime.rows[0].total / 60) * 4000,
+      monthlyOvertimeHours: overtimeHours,
+      estimatedOvertimeCost: Math.round((overtimeMinutes / 60) * overtimeRateFcfa),
+      lateDashboardMinutesThreshold: lateMinThreshold,
+      overtimeHourlyRateFcfa: overtimeRateFcfa,
     });
   } catch (err) {
     next(err);

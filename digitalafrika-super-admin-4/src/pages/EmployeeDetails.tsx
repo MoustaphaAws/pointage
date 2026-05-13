@@ -345,7 +345,7 @@ function PointagesTab({ pointages }: { pointages: PointageItem[] }) {
                 <td className="px-4 py-3">
                   <PointageTypeBadge type={p.type} />
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-600">{p.heuresTravaillees}h</td>
+                <td className="px-4 py-3 text-sm text-slate-600">{Number(p.heuresTravaillees).toFixed(2)} h</td>
                 <td className="px-4 py-3 text-sm font-medium text-purple-600">
                   {p.heuresSup > 0 ? `+${p.heuresSup}h` : '-'}
                 </td>
@@ -470,29 +470,20 @@ function AbsenceStatusBadge({ statut }: { statut: string }) {
 }
 
 function PointageTypeBadge({ type }: { type: string }) {
+  const normalized = String(type || "").toLowerCase() === "retard" ? "retard" : "present";
   const styles: Record<string, string> = {
-    present: 'bg-emerald-100 text-emerald-700',
-    absent: 'bg-red-100 text-red-700',
-    retard: 'bg-amber-100 text-amber-700',
-    demi_journee: 'bg-blue-100 text-blue-700',
-    jour_ferie: 'bg-sky-100 text-sky-700',
-    weekend: 'bg-slate-200 text-slate-700',
-    non_pointe: 'bg-slate-100 text-slate-600',
+    present: "bg-emerald-100 text-emerald-700",
+    retard: "bg-amber-100 text-amber-700",
   };
-  
+
   const labels: Record<string, string> = {
-    present: 'Présent',
-    absent: 'Absent',
-    retard: 'Retard',
-    demi_journee: 'Mi-temps',
-    jour_ferie: 'Jour férié',
-    weekend: 'Weekend',
-    non_pointe: 'Non pointé',
+    present: "Présent",
+    retard: "Retard",
   };
-  
+
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[type] || 'bg-slate-100 text-slate-700'}`}>
-      {labels[type] || type}
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[normalized]}`}>
+      {labels[normalized]}
     </span>
   );
 }

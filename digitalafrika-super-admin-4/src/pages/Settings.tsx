@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Button } from '../components/ui/LayoutComponents';
-import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap } from 'lucide-react';
+import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
 import { useAuthStore } from '../store/useAuthStore';
@@ -140,8 +140,8 @@ export default function SettingsPage() {
           <div className="space-y-6 pt-2">
             <div className="flex items-center justify-between group">
               <div>
-                <p className="text-sm font-bold text-slate-700">Seuil d'Avertissement (Retards)</p>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre de retards mensuels autorisés.</p>
+                <p className="text-sm font-bold text-slate-700">Retards - Seuil Rappel verbal</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre de retards mensuels à partir duquel un rappel est généré.</p>
               </div>
               <input 
                 type="number" 
@@ -153,13 +153,52 @@ export default function SettingsPage() {
             
             <div className="flex items-center justify-between group">
               <div>
-                <p className="text-sm font-bold text-slate-700">Seuil d'Absence Injustifiée</p>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Jours cumulés avant déclenchement de sanction.</p>
+                <p className="text-sm font-bold text-slate-700">Retards - Seuil Avertissement</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre de retards mensuels à partir duquel un avertissement est généré.</p>
+              </div>
+              <input 
+                type="number"
+                value={settings.lateWarningThreshold}
+                onChange={e => setSettings({...settings, lateWarningThreshold: Number(e.target.value)})}
+                className="w-16 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors" 
+              />
+            </div>
+
+            <div className="flex items-center justify-between group">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Retards - Seuil Sanction</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre de retards mensuels à partir duquel une sanction disciplinaire est générée.</p>
+              </div>
+              <input 
+                type="number"
+                value={settings.lateSanctionThreshold}
+                onChange={e => setSettings({...settings, lateSanctionThreshold: Number(e.target.value)})}
+                className="w-16 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors" 
+              />
+            </div>
+
+            <div className="flex items-center justify-between group">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Absences injustifiées - Seuil Avertissement</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre d'absences injustifiées mensuelles à partir duquel un avertissement est généré.</p>
               </div>
               <input 
                 type="number"
                 value={settings.absenceThreshold}
                 onChange={e => setSettings({...settings, absenceThreshold: Number(e.target.value)})}
+                className="w-16 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors" 
+              />
+            </div>
+
+            <div className="flex items-center justify-between group">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Absences injustifiées - Seuil Sanction</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">Nombre d'absences injustifiées mensuelles à partir duquel une sanction disciplinaire est générée.</p>
+              </div>
+              <input 
+                type="number"
+                value={settings.absenceSanctionThreshold}
+                onChange={e => setSettings({...settings, absenceSanctionThreshold: Number(e.target.value)})}
                 className="w-16 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors" 
               />
             </div>
@@ -256,6 +295,54 @@ export default function SettingsPage() {
              </div>
            </div>
         </Card>
+
+        <Card title="Tableau de bord (KPI)">
+          <div className="space-y-6 pt-2">
+            <div className="flex items-center gap-2 text-slate-500 mb-1">
+              <LayoutDashboard size={16} />
+              <p className="text-[11px] font-medium uppercase tracking-wide">Indicateurs globaux</p>
+            </div>
+            <div className="flex items-center justify-between group">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Retards comptés (minutes minimum)</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">
+                  Un pointage du jour est compté dans le KPI « Retards » uniquement si le retard atteint au moins ce nombre de minutes (ex. 15).
+                </p>
+              </div>
+              <input
+                type="number"
+                min={0}
+                value={settings.dashboardLateMinutesMin}
+                onChange={(e) =>
+                  setSettings({ ...settings, dashboardLateMinutesMin: Math.max(0, Number(e.target.value) || 0) })
+                }
+                className="w-20 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors"
+              />
+            </div>
+            <div className="flex items-center justify-between group">
+              <div>
+                <p className="text-sm font-bold text-slate-700">Coût horaire heures sup. (FCFA)</p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5 leading-relaxed">
+                  Taux utilisé pour estimer le coût du mois : somme des minutes d&apos;heures sup. enregistrées sur les pointages × ce taux ÷ 60.
+                </p>
+              </div>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                value={settings.overtimeHourlyRateFcfa}
+                onChange={(e) =>
+                  setSettings({ ...settings, overtimeHourlyRateFcfa: Math.max(0, Number(e.target.value) || 0) })
+                }
+                className="w-28 h-10 bg-slate-50 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors"
+              />
+            </div>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 leading-relaxed">
+              Les <strong>heures sup. (mois)</strong> proviennent de la colonne <code className="text-[10px] bg-white px-1 rounded">heures_sup_minutes</code> des pointages (départ après l&apos;heure de fin prévue). Le coût affiché est une estimation à partir du taux ci-dessus.
+            </div>
+          </div>
+        </Card>
+
         <Card title="Services (CRUD)">
           <div className="space-y-3">
             <div className="flex gap-2">

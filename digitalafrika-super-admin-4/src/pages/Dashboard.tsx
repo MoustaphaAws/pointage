@@ -26,6 +26,8 @@ export default function Dashboard() {
     lateArrivalsCount: 0,
     monthlyOvertimeHours: 0,
     estimatedOvertimeCost: 0,
+    lateDashboardMinutesThreshold: 15,
+    overtimeHourlyRateFcfa: 4000,
   });
 
   const loadDashboard = () => {
@@ -77,10 +79,27 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPIItem title="Taux d'absentéisme" value={`${stats.absenteeismRate}%`} icon={TrendingUp} trend="Global" trendColor="text-red-500" />
-        <KPIItem title="Retards > 15min" value={stats.lateArrivalsCount} icon={Clock} trend="Logs" trendColor="text-emerald-500" />
-        <KPIItem title="Heures Sup (Mois)" value={stats.monthlyOvertimeHours} icon={Activity} trend="Estimé" trendColor="text-slate-400" />
-        <KPIItem title="Coût Heures Sup" value={`${stats.estimatedOvertimeCost} FCFA`} icon={DollarSign} trend="Estimé" trendColor="text-slate-400" />
+        <KPIItem
+          title={`Retards ≥ ${stats.lateDashboardMinutesThreshold ?? 15} min`}
+          value={stats.lateArrivalsCount}
+          icon={Clock}
+          trend="Aujourd'hui"
+          trendColor="text-emerald-500"
+        />
+        <KPIItem
+          title="Heures sup. (mois)"
+          value={`${Number(stats.monthlyOvertimeHours ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`}
+          icon={Activity}
+          trend="Pointages"
+          trendColor="text-slate-400"
+        />
+        <KPIItem
+          title="Coût heures sup. (mois)"
+          value={`${(stats.estimatedOvertimeCost ?? 0).toLocaleString('fr-FR')} FCFA`}
+          icon={DollarSign}
+          trend={`${stats.overtimeHourlyRateFcfa?.toLocaleString('fr-FR') ?? '—'} F/h`}
+          trendColor="text-slate-400"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

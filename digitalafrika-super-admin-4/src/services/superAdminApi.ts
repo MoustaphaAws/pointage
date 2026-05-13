@@ -13,12 +13,19 @@ export interface LoginResponse {
 
 export interface AppSettings {
   lateThreshold: number;
+  lateWarningThreshold: number;
+  lateSanctionThreshold: number;
   absenceThreshold: number;
+  absenceSanctionThreshold: number;
   defaultEntry: string;
   defaultExit: string;
   requireJustification: boolean;
   notifyOnAbsence3Days: boolean;
   notifySuspiciousRhValidation: boolean;
+  /** Minutes de retard minimum pour compter dans le KPI « Retards » du tableau de bord (jour en cours). */
+  dashboardLateMinutesMin: number;
+  /** Coût estimé d'une heure supplémentaire (FCFA), pour le KPI « Coût heures sup » du mois. */
+  overtimeHourlyRateFcfa: number;
   /** Data URL (PNG/JPEG) — stocké côté serveur sous `company_logo` */
   logoBase64?: string;
 }
@@ -32,6 +39,10 @@ export interface GlobalStats {
   lateArrivalsCount: number;
   monthlyOvertimeHours: number;
   estimatedOvertimeCost: number;
+  /** Seuil minutes utilisé pour le KPI retards (renvoyé par l’API pour affichage). */
+  lateDashboardMinutesThreshold?: number;
+  /** Taux FCFA/h utilisé pour le coût estimé des heures sup. */
+  overtimeHourlyRateFcfa?: number;
   serviceActivity?: Array<{ name: string; current: number; total: number }>;
   criticalAlerts?: number;
 }
@@ -50,12 +61,17 @@ export const defaultAdminPermissions: AdminPermissions = {
 
 export const defaultSettings: AppSettings = {
   lateThreshold: 3,
-  absenceThreshold: 5,
+  lateWarningThreshold: 5,
+  lateSanctionThreshold: 6,
+  absenceThreshold: 1,
+  absenceSanctionThreshold: 2,
   defaultEntry: "08:30",
   defaultExit: "17:30",
   requireJustification: true,
   notifyOnAbsence3Days: true,
   notifySuspiciousRhValidation: true,
+  dashboardLateMinutesMin: 15,
+  overtimeHourlyRateFcfa: 4000,
 };
 
 export async function loginSuperAdmin(payload: LoginPayload): Promise<LoginResponse> {
