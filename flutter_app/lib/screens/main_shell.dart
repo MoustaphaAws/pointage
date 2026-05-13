@@ -58,11 +58,11 @@ class _MainShellState extends ConsumerState<MainShell> {
                     ),
                     children: [
                       const TextSpan(
-                        text: 'Digital',
+                        text: 'On',
                         style: TextStyle(color: AppColors.violet700),
                       ),
                       TextSpan(
-                        text: 'Afrika',
+                        text: 'Time',
                         style: TextStyle(color: colorScheme.onSurface),
                       ),
                     ],

@@ -50,7 +50,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200 p-3 mb-6 transform -rotate-3">
             <Shield size={32} />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">DigitalAfrika</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">OnTime</h1>
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Console Super Administrateur</p>
         </div>
 
@@ -65,7 +65,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-12 pr-4 h-12 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-600 focus:ring-4 focus:ring-blue-50 outline-none transition-all text-sm font-medium"
-                placeholder="email@digitalafrika.com"
+                placeholder="vous@entreprise.com"
               />
             </div>
           </div>

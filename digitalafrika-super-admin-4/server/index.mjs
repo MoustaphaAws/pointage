@@ -1120,7 +1120,7 @@ app.get("/api/admin/export/global", async (req, res) => {
     doc.strokeColor('#e2e8f0').lineWidth(0.5);
     doc.moveTo(40, footerY - 10).lineTo(pageWidth + 40, footerY - 10).stroke();
     doc.fontSize(8).font('Helvetica').fillColor('#94a3b8');
-    doc.text('DigitalAfrika - Système de Pointage', 40, footerY, { align: 'center' });
+    doc.text('OnTime — Système de Pointage', 40, footerY, { align: 'center' });
     doc.text('Document confidentiel', 40, footerY + 12, { align: 'center' });
     
     doc.end();

@@ -13,13 +13,13 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: DigitalAfrikaApp(),
+      child: OnTimeApp(),
     ),
   );
 }
 
-class DigitalAfrikaApp extends ConsumerWidget {
-  const DigitalAfrikaApp({super.key});
+class OnTimeApp extends ConsumerWidget {
+  const OnTimeApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +27,7 @@ class DigitalAfrikaApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
-      title: 'Digital Afrika',
+      title: 'OnTime',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -55,7 +55,7 @@ class DigitalAfrikaApp extends ConsumerWidget {
               ),
               SizedBox(height: 24),
               Text(
-                'DIGITAL AFRIKA',
+                'ON TIME',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,

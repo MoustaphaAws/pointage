@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'digital-afrika-auth',
+      name: 'ontime-auth',
       onRehydrateStorage: () => (state) => {
         if (!state?.token || isJwtExpired(state.token)) {
           localStorage.removeItem('auth_token');

@@ -120,11 +120,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                           children: [
                             TextSpan(
-                              text: 'Digital',
+                              text: 'On',
                               style: TextStyle(color: AppColors.violet600),
                             ),
                             TextSpan(
-                              text: ' Afrika',
+                              text: 'Time',
                               style: TextStyle(color: AppColors.slate900),
                             ),
                           ],
@@ -132,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Console de Supervision Directe',
+                        'Pointage & présence',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

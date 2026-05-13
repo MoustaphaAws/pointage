@@ -70,7 +70,7 @@ const authLimiter = rateLimit({
 app.get("/api/health", (_req, res) => {
   res.json({ 
     ok: true, 
-    service: "digitalafrika-api", 
+    service: "ontime-api", 
     version: "1.0.1",
     deployedAt: new Date().toISOString()
   });
@@ -149,7 +149,7 @@ async function bootstrap() {
   try {
     await testConnection();
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 API DigitalAfrika lancée sur http://localhost:${PORT}`);
+      console.log(`🚀 API OnTime lancée sur http://localhost:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
     });
     

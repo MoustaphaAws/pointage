@@ -1,11 +1,11 @@
 {
-    "name": "digital_afrika",
-    "short_name": "digital_afrika",
+    "name": "OnTime",
+    "short_name": "OnTime",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "OnTime — Pointage & présence du personnel",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

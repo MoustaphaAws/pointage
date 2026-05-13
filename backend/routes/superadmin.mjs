@@ -275,7 +275,7 @@ router.post("/admins", async (req, res, next) => {
     await query(
       `INSERT INTO notifications (employe_id, type, titre, message)
        VALUES ($1, 'bienvenue', 'Bienvenue !', $2)`,
-      [created.id, `Bienvenue chez DigitalAfrika. Votre identifiant de connexion est : ${email}`]
+      [created.id, `Bienvenue chez OnTime. Votre identifiant de connexion est : ${email}`]
     );
 
     if (actor) {

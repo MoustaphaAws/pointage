@@ -1,7 +1,7 @@
 {
   "name": "digitalafrika-api",
   "version": "1.0.0",
-  "description": "DigitalAfrika — API REST Pointage du Personnel",
+  "description": "OnTime — API REST pointage du personnel",
   "type": "module",
   "scripts": {
     "dev": "node --watch --env-file=.env server.mjs",

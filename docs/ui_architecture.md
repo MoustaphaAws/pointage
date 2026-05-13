@@ -1,4 +1,4 @@
-# Architecture Réseau et Structure UI — DigitalAfrika Flutter
+# Architecture UI — OnTime (Flutter)
 
 ## 1. Navigation Shell (`BottomNavigationBar`)
 

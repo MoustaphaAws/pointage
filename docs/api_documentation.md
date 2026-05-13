@@ -1,4 +1,4 @@
-# DIGITALAFRIKA — API REST Documentation
+# OnTime — API REST Documentation
 
 > **Base URL** : `http://localhost:3000/api` | **Auth** : JWT Bearer | **Format** : JSON
 

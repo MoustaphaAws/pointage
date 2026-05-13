@@ -109,7 +109,7 @@ class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen>
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'QR Code de pointage DigitalAfrika du ${_qrData!.date}. Scannez ce code depuis l\'application pour pointer votre arrivée/départ.',
+        text: 'QR Code de pointage OnTime du ${_qrData!.date}. Scannez ce code depuis l\'application pour pointer votre arrivée/départ.',
         subject: 'QR Pointage - ${_qrData!.date}',
       );
     } catch (e) {
@@ -142,7 +142,7 @@ class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen>
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: [
                   pw.Text(
-                    'DIGITALAFRIKA',
+                    'ONTIME',
                     style: pw.TextStyle(
                       fontSize: 28,
                       fontWeight: pw.FontWeight.bold,
@@ -331,7 +331,7 @@ class _QrDisplayScreenState extends ConsumerState<QrDisplayScreen>
                                     ),
                                     const SizedBox(height: 16),
                                     const Text(
-                                      'DIGITALAFRIKA',
+                                      'ONTIME',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w900,

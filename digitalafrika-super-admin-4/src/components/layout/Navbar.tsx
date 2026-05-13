@@ -28,7 +28,7 @@ export function Navbar() {
         {/* Left: Logo */}
         <div className="flex-shrink-0 w-[240px]">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <h1 className="text-white font-bold text-xl tracking-tight">Digital<span className="text-blue-500">Afrika</span></h1>
+            <h1 className="text-white font-bold text-xl tracking-tight">On<span className="text-blue-500">Time</span></h1>
             <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-[9px] font-bold uppercase tracking-widest rounded border border-blue-500/30">Admin</span>
           </Link>
         </div>

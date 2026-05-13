@@ -102,7 +102,7 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
     // Titre Entreprise positionné de sorte à correspondre s'il y a un logo
     const titleX = hasDrawnLogo ? 150 : 85;
 
-    doc.fillColor(colors.dark).fontSize(22).font("Helvetica-Bold").text("DigitalAfrika", titleX, 45);
+    doc.fillColor(colors.dark).fontSize(22).font("Helvetica-Bold").text("OnTime", titleX, 45);
     doc.fillColor(colors.muted).fontSize(8).font("Helvetica").text("SYSTÈME D'EXPLOITATION RH & POINTAGE", titleX, 68, { characterSpacing: 1 });
     
     // Lignes de séparation
@@ -201,7 +201,7 @@ export async function generateReportPDF(res, { title, columns, rows, metadata = 
     
     doc.moveTo(50, 775).lineTo(545, 775).strokeColor(colors.border).lineWidth(1).stroke();
     doc.fillColor(colors.muted).fontSize(7).font("Helvetica").text(
-      `Généré par le système DigitalAfrika Core v2 - ${new Date().toLocaleString('fr-FR')}`,
+      `Généré par OnTime — ${new Date().toLocaleString('fr-FR')}`,
       50, 785
     );
     doc.fillColor(colors.dark).fontSize(8).font("Helvetica-Bold").text(

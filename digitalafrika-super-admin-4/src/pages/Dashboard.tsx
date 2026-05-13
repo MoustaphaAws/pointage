@@ -80,6 +80,13 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPIItem
+          title="Taux d'absentéisme"
+          value={`${stats.absenteeismRate}%`}
+          icon={TrendingUp}
+          trend="Global"
+          trendColor="text-red-500"
+        />
+        <KPIItem
           title={`Retards ≥ ${stats.lateDashboardMinutesThreshold ?? 15} min`}
           value={stats.lateArrivalsCount}
           icon={Clock}

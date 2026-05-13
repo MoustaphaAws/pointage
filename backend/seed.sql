@@ -106,7 +106,7 @@ ON CONFLICT DO NOTHING;
 
 -- Quelques notifications de test
 INSERT INTO notifications (employe_id, type, titre, message)
-SELECT id, 'bienvenue', 'Bienvenue !', 'Bienvenue sur DigitalAfrika. Votre compte est actif.'
+SELECT id, 'bienvenue', 'Bienvenue !', 'Bienvenue sur OnTime. Votre compte est actif.'
 FROM employes WHERE email = 'aminata@digitalafrika.com'
 ON CONFLICT DO NOTHING;
 
