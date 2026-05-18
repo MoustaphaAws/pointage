@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Card, Button } from '../components/ui/LayoutComponents';
-import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard } from 'lucide-react';
+import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
+import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, resetAllUsers, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
 import { useAuthStore } from '../store/useAuthStore';
 
 export default function SettingsPage() {
@@ -102,6 +102,20 @@ export default function SettingsPage() {
       toast.success('Profil SuperAdmin mis à jour');
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Erreur de mise à jour du profil');
+    }
+  };
+
+  const handleResetUsers = async () => {
+    const confirmReset = window.confirm(
+      '⚠️ ATTENTION : Cette action supprimera TOUS les utilisateurs (employés et admins RH). Le SuperAdmin actuel restera seul. Êtes-vous absolument sûr ?'
+    );
+    if (!confirmReset) return;
+
+    try {
+      await resetAllUsers();
+      toast.success('Tous les utilisateurs ont été supprimés avec succès');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation des utilisateurs');
     }
   };
 
@@ -441,6 +455,32 @@ export default function SettingsPage() {
                   />
                 </div>
               )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Zone de danger : Réinitialisation des utilisateurs */}
+        <Card title="⚠️ Zone de danger" className="md:col-span-2 border-red-200 bg-red-50/30">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-red-700">Réinitialiser tous les utilisateurs</p>
+                <p className="text-xs text-red-600/80 mt-1">
+                  Cette action supprime définitivement <strong>tous les comptes</strong> (employés et administrateurs RH). 
+                  Seul votre compte SuperAdmin sera conservé. Cette opération est irréversible.
+                </p>
+                <Button 
+                  variant="danger" 
+                  className="mt-3 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                  onClick={handleResetUsers}
+                >
+                  <Trash2 size={16} />
+                  Supprimer tous les utilisateurs
+                </Button>
+              </div>
             </div>
           </div>
         </Card>

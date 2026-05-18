@@ -292,3 +292,11 @@ export async function updateCurrentSuperAdmin(payload: {
   const response = await api.put("/admin/me", payload);
   return response.data;
 }
+
+/**
+ * Supprime tous les utilisateurs (employés et admins RH) sauf le SuperAdmin courant.
+ * Cette action est irréversible.
+ */
+export async function resetAllUsers(): Promise<void> {
+  await api.delete("/admin/reset-users");
+}

@@ -424,134 +424,138 @@ export default function UsersPage() {
         {loading ? (
           <div className="p-6 text-sm text-slate-500">Chargement des comptes...</div>
         ) : (
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Utilisateur</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Rôle</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Service</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Poste</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">ID</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Statut</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredUsers.map((user) => (
-              <tr
-                key={user.id}
-                className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
-                onClick={() => navigate(`/users/${encodeURIComponent(String(user.id))}`, { state: { user } })}
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs italic">
-                      {user.firstName[0]}{user.lastName[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{user.firstName} {user.lastName}</p>
-                      <p className="text-[11px] text-slate-400 font-medium">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-xs font-semibold">
-                  {user.role === 'admin' ? (
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-purple-600">Admin RH</span>
-                        {(() => {
-                          const status = getPermissionStatus(user.adminPermissions);
-                          return (
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-bold ${status.className}`}>
-                              {status.label}
-                            </span>
-                          );
-                        })()}
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">#</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Utilisateur</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Rôle</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Service</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Poste</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">ID</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500">Statut</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
+               </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredUsers.map((user, index) => (
+                <tr
+                  key={user.id}
+                  className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                  onClick={() => navigate(`/users/${encodeURIComponent(String(user.id))}`, { state: { user } })}
+                >
+                  <td className="px-6 py-4 text-xs font-medium text-slate-500 text-center">
+                    {index + 1}
+                   </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs italic">
+                        {user.firstName[0]}{user.lastName[0]}
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {(() => {
-                          const perms = user.adminPermissions || {} as AdminPermissions;
-                          const items = [
-                            { key: 'canPoint', label: 'Pointage', active: perms.canPoint },
-                            { key: 'canApplySanctions', label: 'Sanctions', active: perms.canApplySanctions },
-                            { key: 'canValidateAbsences', label: 'Absences', active: perms.canValidateAbsences },
-                            { key: 'canManageEmployees', label: 'Employés', active: perms.canManageEmployees },
-                          ];
-                          return items.map((item) => (
-                            <span
-                              key={item.key}
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold leading-tight ${
-                                item.active
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
-                              }`}
-                            >
-                              {item.active ? '✓' : '✗'} {item.label}
-                            </span>
-                          ));
-                        })()}
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{user.firstName} {user.lastName}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{user.email}</p>
                       </div>
                     </div>
-                  ) : (
-                    <span className="text-slate-600">Employé</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.service}</td>
-                <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.poste || '-'}</td>
-                <td className="px-6 py-4 text-xs font-mono text-slate-400 group-hover:text-slate-900 transition-colors tracking-widest">
-                  {user.id}
-                </td>
-                <td className="px-6 py-4">
-                  <Badge variant={user.active ? 'success' : 'error'}>
-                    {user.active ? 'Actif' : 'Désactivé'}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button 
-                      variant="ghost" 
-                      className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={(e) => { e.stopPropagation(); toggleRole(user.id); }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      title={user.role === 'admin' ? "Rétrograder en Employé (permissions retirées)" : "Promouvoir en Admin RH (permissions à définir)"}
-                    >
-                      {user.role === 'admin' ? (
-                        <ShieldOff size={16} className="text-rose-500" />
-                      ) : (
-                        <ShieldCheck size={16} className="text-emerald-600" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={(e) => { e.stopPropagation(); startEdit(user); }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                    >
-                      <Edit2 size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
-                      onClick={(e) => { e.stopPropagation(); openRoleModal(user); }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      title="Assigner rôle et permissions"
-                    >
-                      <UserCog size={16} />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="p-2 h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                   </td>
+                  <td className="px-6 py-4 text-xs font-semibold">
+                    {user.role === 'admin' ? (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-purple-600">Admin RH</span>
+                          {(() => {
+                            const status = getPermissionStatus(user.adminPermissions);
+                            return (
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-bold ${status.className}`}>
+                                {status.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {(() => {
+                            const perms = user.adminPermissions || {} as AdminPermissions;
+                            const items = [
+                              { key: 'canPoint', label: 'Pointage', active: perms.canPoint },
+                              { key: 'canApplySanctions', label: 'Sanctions', active: perms.canApplySanctions },
+                              { key: 'canValidateAbsences', label: 'Absences', active: perms.canValidateAbsences },
+                              { key: 'canManageEmployees', label: 'Employés', active: perms.canManageEmployees },
+                            ];
+                            return items.map((item) => (
+                              <span
+                                key={item.key}
+                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold leading-tight ${
+                                  item.active
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-slate-50 text-slate-400 border border-slate-200 line-through'
+                                }`}
+                              >
+                                {item.active ? '✓' : '✗'} {item.label}
+                              </span>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600">Employé</span>
+                    )}
+                   </td>
+                  <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.service}</td>
+                  <td className="px-6 py-4 text-xs font-medium text-slate-600">{user.poste || '-'}</td>
+                  <td className="px-6 py-4 text-xs font-mono text-slate-400 group-hover:text-slate-900 transition-colors tracking-widest">
+                    {user.id}
+                   </td>
+                  <td className="px-6 py-4">
+                    <Badge variant={user.active ? 'success' : 'error'}>
+                      {user.active ? 'Actif' : 'Désactivé'}
+                    </Badge>
+                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button 
+                        variant="ghost" 
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
+                        onClick={(e) => { e.stopPropagation(); toggleRole(user.id); }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        title={user.role === 'admin' ? "Rétrograder en Employé (permissions retirées)" : "Promouvoir en Admin RH (permissions à définir)"}
+                      >
+                        {user.role === 'admin' ? (
+                          <ShieldOff size={16} className="text-rose-500" />
+                        ) : (
+                          <ShieldCheck size={16} className="text-emerald-600" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
+                        onClick={(e) => { e.stopPropagation(); startEdit(user); }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <Edit2 size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"
+                        onClick={(e) => { e.stopPropagation(); openRoleModal(user); }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        title="Assigner rôle et permissions"
+                      >
+                        <UserCog size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="p-2 h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                      </Button>
+                    </div>
+                   </td>
+                 </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </Card>
     </div>
