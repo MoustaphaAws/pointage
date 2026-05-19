@@ -480,6 +480,160 @@ app.delete("/api/admin/referentials/:kind/:value", async (req, res) => {
   res.json({ items: next });
 });
 
+// ===== ROUTES SUPERVISION SUPERADMIN =====
+
+// Désactiver un employé
+app.put("/api/admin/admins/:id/desactiver", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const id = Number(req.params.id);
+
+  const result = await query(
+    "UPDATE employes SET active = false WHERE id = $1 AND role IN ('admin', 'employee') RETURNING *",
+    [id]
+  );
+
+  if (!result.rowCount) {
+    return res.status(404).json({ message: "Employé non trouvé" });
+  }
+
+  const target = result.rows[0];
+  await writeAuditLog({
+    user: actor,
+    action: "DESACTIVER_EMPLOYE",
+    target: fullName(target),
+    details: "Désactivation du compte employé",
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: "Employé désactivé", employe: target });
+});
+
+// Désactiver plusieurs employés
+app.put("/api/admin/admins/desactiver-multiple", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const { ids } = req.body || {};
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "Liste d'IDs requise" });
+  }
+
+  const result = await query(
+    "UPDATE employes SET active = false WHERE id = ANY($1::int[]) AND role IN ('admin', 'employee') RETURNING *",
+    [ids]
+  );
+
+  const employes = result.rows;
+
+  await writeAuditLog({
+    user: actor,
+    action: "DESACTIVER_MULTIPLE",
+    target: `${employes.length} employés`,
+    details: `Désactivation de ${employes.length} employé(s)`,
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: `${employes.length} employé(s) désactivé(s)`, employes });
+});
+
+// Réactiver un employé
+app.put("/api/admin/admins/:id/reactiver", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const id = Number(req.params.id);
+
+  const result = await query(
+    "UPDATE employes SET active = true WHERE id = $1 AND role IN ('admin', 'employee') RETURNING *",
+    [id]
+  );
+
+  if (!result.rowCount) {
+    return res.status(404).json({ message: "Employé non trouvé" });
+  }
+
+  const target = result.rows[0];
+  await writeAuditLog({
+    user: actor,
+    action: "REACTIVER_EMPLOYE",
+    target: fullName(target),
+    details: "Réactivation du compte employé",
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: "Employé réactivé", employe: target });
+});
+
+// Voir les décisions RH en attente
+app.get("/api/admin/decisions-rh", async (req, res) => {
+  const result = await query(
+    "SELECT * FROM decisions_rh WHERE statut = 'en_attente' ORDER BY created_at DESC"
+  );
+  res.json(result.rows);
+});
+
+// Approuver une décision RH
+app.put("/api/admin/decisions-rh/:id/approuver", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const id = Number(req.params.id);
+  const { commentaire } = req.body || {};
+
+  const result = await query(
+    `UPDATE decisions_rh 
+     SET statut = 'approuvee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+     WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+    [id, req.auth.sub, commentaire || null]
+  );
+
+  if (!result.rowCount) {
+    return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
+  }
+
+  const decision = result.rows[0];
+  await writeAuditLog({
+    user: actor,
+    action: "APPROUVER_DECISION",
+    target: `Décision #${decision.id}`,
+    details: `Approbation décision ${decision.type_decision}`,
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: "Décision approuvée", decision });
+});
+
+// Annuler une décision RH
+app.put("/api/admin/decisions-rh/:id/annuler", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+  const id = Number(req.params.id);
+  const { commentaire } = req.body || {};
+
+  const result = await query(
+    `UPDATE decisions_rh 
+     SET statut = 'annulee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+     WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+    [id, req.auth.sub, commentaire || null]
+  );
+
+  if (!result.rowCount) {
+    return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
+  }
+
+  const decision = result.rows[0];
+  await writeAuditLog({
+    user: actor,
+    action: "ANNULER_DECISION",
+    target: `Décision #${decision.id}`,
+    details: `Annulation décision ${decision.type_decision}`,
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: "Décision annulée", decision });
+});
+
+// ===== ANCIENNES ROUTES (GARDÉES POUR COMPATIBILITÉ) =====
+
 app.put("/api/admin/admins/:id/suspend", async (req, res) => {
   const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
   const actor = actorResult.rows[0];
@@ -753,7 +907,7 @@ app.get("/api/admin/audit-logs/export", async (req, res) => {
       batchValues
     );
     if (!rows.rowCount) break;
-    for (const row of rows.rows) {
+        for (const row of rows.rows) {
       res.write(
         [
           escape(row.created_at),
@@ -775,7 +929,6 @@ app.get("/api/admin/stats/global", async (_req, res) => {
   const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE active = true");
   const totalUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role IN ('employee', 'admin')");
   
-  // Calcul du taux d'absentéisme réel (basé sur les absences approuvées du mois courant)
   const currentMonth = new Date().toISOString().slice(0, 7);
   const absencesResult = await query(
     `
@@ -798,7 +951,6 @@ app.get("/api/admin/stats/global", async (_req, res) => {
   const absentEmployees = absencesResult.rows[0].total_absents || 0;
   const absenteeismRate = Number(((absentEmployees / totalEmp) * 100).toFixed(1));
   
-  // Heures supplémentaires réelles du mois (basé sur les pointages)
   const overtimeResult = await query(
     `
       SELECT 
@@ -811,12 +963,9 @@ app.get("/api/admin/stats/global", async (_req, res) => {
   );
   
   const monthlyOvertimeHours = Number((overtimeResult.rows[0].total_heures_sup || 0).toFixed(1));
-  
-  // Coût estimé des heures sup (taux moyen de 3000 FCFA/heure)
   const hourlyRate = 3000;
   const estimatedOvertimeCost = Math.round(monthlyOvertimeHours * hourlyRate);
   
-  // Retards (pointages de type 'retard' du mois)
   const lateResult = await query(
     `
       SELECT COUNT(*)::int AS total 
@@ -827,13 +976,8 @@ app.get("/api/admin/stats/global", async (_req, res) => {
     [currentMonth]
   );
   
-  // Absences en attente
   const pendingAbsencesResult = await query(
-    `
-      SELECT COUNT(*)::int AS total 
-      FROM absences 
-      WHERE statut = 'en_attente'
-    `
+    "SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'"
   );
   
   const serviceActivityRows = await query(
@@ -1020,109 +1164,6 @@ app.get("/api/admin/export/global", async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="${type}_${month || "all"}.pdf"`);
     const doc = new PDFDocument({ margin: 40, size: "A4", layout: 'portrait' });
     doc.pipe(res);
-    
-    const pageWidth = doc.page.width - 80;
-    const now = new Date();
-    const logoPath = process.env.COMPANY_LOGO_PATH || null;
-    
-    // Header avec logo (si disponible)
-    if (logoPath && require('fs').existsSync(logoPath)) {
-      try {
-        doc.image(logoPath, 40, 40, { width: 80 });
-      } catch {
-        // Si le logo ne charge pas, on continue sans
-      }
-    }
-    
-    // Titre du rapport
-    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e293b');
-    doc.text('RAPPORT', 140, 40);
-    doc.fontSize(14).font('Helvetica').fillColor('#64748b');
-    doc.text(getReportTypeLabel(type), 140, 65);
-    
-    // Ligne de séparation
-    doc.strokeColor('#e2e8f0').lineWidth(1);
-    doc.moveTo(40, 100).lineTo(pageWidth + 40, 100).stroke();
-    
-    // Informations du rapport
-    doc.fontSize(9).font('Helvetica').fillColor('#475569');
-    doc.text(`Généré le: ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`, 40, 115);
-    doc.text(`Période: ${month ? new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : 'Toutes périodes'}`, 40, 130);
-    doc.text(`Service: ${service === 'all' ? 'Tous les services' : service}`, 40, 145);
-    doc.text(`Nombre d'enregistrements: ${rows.length}`, 40, 160);
-    
-    // Ligne de séparation
-    doc.moveTo(40, 180).lineTo(pageWidth + 40, 180).stroke();
-    
-    // Contenu du rapport sous forme de tableau
-    if (rows.length > 0) {
-      let y = 200;
-      const rowHeight = 20;
-      const colWidth = pageWidth / Math.min(4, Object.keys(rows[0]).length);
-      
-      // En-têtes du tableau
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
-      const headers = Object.keys(rows[0]);
-      headers.slice(0, 4).forEach((header, i) => {
-        doc.text(header.toUpperCase(), 40 + i * colWidth, y, { width: colWidth - 5 });
-      });
-      
-      y += rowHeight;
-      doc.strokeColor('#cbd5e1').lineWidth(0.5);
-      doc.moveTo(40, y - 5).lineTo(pageWidth + 40, y - 5).stroke();
-      
-      // Lignes de données
-      doc.fontSize(8).font('Helvetica').fillColor('#334155');
-      const printableRows = rows.slice(0, 60);
-      
-      printableRows.forEach((row, idx) => {
-        if (y > 750) {
-          doc.addPage();
-          y = 40;
-          // Ré-en-tête sur nouvelle page
-          doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e293b');
-          headers.slice(0, 4).forEach((header, i) => {
-            doc.text(header.toUpperCase(), 40 + i * colWidth, y, { width: colWidth - 5 });
-          });
-          y += rowHeight;
-        }
-        
-        // Alternance de couleurs de fond
-        if (idx % 2 === 0) {
-          doc.fillColor('#f8fafc').rect(40, y - 2, pageWidth, rowHeight - 2).fill();
-        }
-        
-        doc.fillColor('#334155');
-        headers.slice(0, 4).forEach((header, i) => {
-          let value = row[header];
-          if (value === null || value === undefined) value = '-';
-          if (typeof value === 'boolean') value = value ? 'Oui' : 'Non';
-          if (typeof value === 'object') value = JSON.stringify(value);
-          const strValue = String(value).substring(0, 25);
-          doc.text(strValue, 40 + i * colWidth, y, { width: colWidth - 5 });
-        });
-        
-        y += rowHeight;
-      });
-      
-      if (rows.length > printableRows.length) {
-        y += 10;
-        doc.fontSize(9).font('Helvetica-Oblique').fillColor('#94a3b8');
-        doc.text(`... et ${rows.length - printableRows.length} enregistrements supplémentaires`, 40, y);
-      }
-    } else {
-      doc.fontSize(12).font('Helvetica-Oblique').fillColor('#94a3b8');
-      doc.text('Aucune donnée disponible pour cette période.', 40, 250, { align: 'center' });
-    }
-    
-    // Pied de page
-    const footerY = doc.page.height - 50;
-    doc.strokeColor('#e2e8f0').lineWidth(0.5);
-    doc.moveTo(40, footerY - 10).lineTo(pageWidth + 40, footerY - 10).stroke();
-    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8');
-    doc.text('OnTime — Système de Pointage', 40, footerY, { align: 'center' });
-    doc.text('Document confidentiel', 40, footerY + 12, { align: 'center' });
-    
     doc.end();
     return;
   }
@@ -1131,15 +1172,6 @@ app.get("/api/admin/export/global", async (req, res) => {
   res.setHeader("Content-Disposition", `attachment; filename="${type}_${month || "all"}.csv"`);
   res.send(csv);
 });
-
-function getReportTypeLabel(type) {
-  const labels = {
-    absences: 'Rapport des Absences',
-    pointages: 'Registre des Pointages',
-    disciplinaire: 'Audit Disciplinaire',
-  };
-  return labels[type] || 'Rapport';
-}
 
 async function seedIfNeeded() {
   const check = await query("SELECT id FROM employes WHERE role = 'superadmin' LIMIT 1");

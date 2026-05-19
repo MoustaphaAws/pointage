@@ -22,11 +22,8 @@ export interface AppSettings {
   requireJustification: boolean;
   notifyOnAbsence3Days: boolean;
   notifySuspiciousRhValidation: boolean;
-  /** Minutes de retard minimum pour compter dans le KPI « Retards » du tableau de bord (jour en cours). */
   dashboardLateMinutesMin: number;
-  /** Coût estimé d'une heure supplémentaire (FCFA), pour le KPI « Coût heures sup » du mois. */
   overtimeHourlyRateFcfa: number;
-  /** Data URL (PNG/JPEG) — stocké côté serveur sous `company_logo` */
   logoBase64?: string;
 }
 
@@ -39,9 +36,7 @@ export interface GlobalStats {
   lateArrivalsCount: number;
   monthlyOvertimeHours: number;
   estimatedOvertimeCost: number;
-  /** Seuil minutes utilisé pour le KPI retards (renvoyé par l’API pour affichage). */
   lateDashboardMinutesThreshold?: number;
-  /** Taux FCFA/h utilisé pour le coût estimé des heures sup. */
   overtimeHourlyRateFcfa?: number;
   serviceActivity?: Array<{ name: string; current: number; total: number }>;
   criticalAlerts?: number;
@@ -293,10 +288,45 @@ export async function updateCurrentSuperAdmin(payload: {
   return response.data;
 }
 
-/**
- * Supprime tous les utilisateurs (employés et admins RH) sauf le SuperAdmin courant.
- * Cette action est irréversible.
- */
 export async function resetAllUsers(): Promise<void> {
   await api.delete("/admin/reset-users");
+}
+
+// ===== NOUVELLES FONCTIONS SUPERVISION SUPERADMIN =====
+
+export async function desactiverEmploye(id: string): Promise<void> {
+  await api.put(`/admin/admins/${id}/desactiver`);
+}
+
+export async function desactiverPlusieursEmployes(ids: string[]): Promise<void> {
+  await api.put("/admin/admins/desactiver-multiple", { ids });
+}
+
+export async function reactiverEmploye(id: string): Promise<void> {
+  await api.put(`/admin/admins/${id}/reactiver`);
+}
+
+export async function supprimerEmploye(id: string): Promise<void> {
+  await api.delete(`/admin/admins/${id}`);
+}
+
+export async function supprimerPlusieursEmployes(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    await api.delete(`/admin/admins/${id}`);
+  }
+}
+
+export async function getDecisionsEnAttente(): Promise<any[]> {
+  const response = await api.get("/admin/decisions-rh");
+  return response.data;
+}
+
+export async function approuverDecision(id: string, commentaire?: string): Promise<any> {
+  const response = await api.put(`/admin/decisions-rh/${id}/approuver`, { commentaire });
+  return response.data;
+}
+
+export async function annulerDecision(id: string, commentaire?: string): Promise<any> {
+  const response = await api.put(`/admin/decisions-rh/${id}/annuler`, { commentaire });
+  return response.data;
 }

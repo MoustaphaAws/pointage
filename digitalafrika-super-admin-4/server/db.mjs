@@ -58,6 +58,76 @@ export async function initDb() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS decisions_rh (
+      id SERIAL PRIMARY KEY,
+      rh_id INTEGER NOT NULL REFERENCES employes(id),
+      employe_id INTEGER REFERENCES employes(id),
+      type_decision VARCHAR(50) NOT NULL,
+      decision_id INTEGER,
+      action VARCHAR(100) NOT NULL,
+      details JSONB DEFAULT '{}'::jsonb,
+      statut VARCHAR(20) NOT NULL DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'approuvee', 'annulee')),
+      commentaire_superadmin TEXT,
+      traite_par INTEGER REFERENCES employes(id),
+      date_traitement TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}
+
+// ===== FONCTIONS SUPERVISION SUPERADMIN =====
+
+export async function desactiverEmploye(id) {
+  const result = await query(
+    'UPDATE employes SET active = false WHERE id = $1 RETURNING id, first_name, last_name, email, active',
+    [id]
+  );
+  return result.rows[0];
+}
+
+export async function desactiverPlusieursEmployes(ids) {
+  const result = await query(
+    'UPDATE employes SET active = false WHERE id = ANY($1::int[]) RETURNING id, first_name, last_name, email, active',
+    [ids]
+  );
+  return result.rows;
+}
+
+export async function reactiverEmploye(id) {
+  const result = await query(
+    'UPDATE employes SET active = true WHERE id = $1 RETURNING id, first_name, last_name, email, active',
+    [id]
+  );
+  return result.rows[0];
+}
+
+export async function getDecisionsEnAttente() {
+  const result = await query(
+    "SELECT * FROM decisions_rh WHERE statut = 'en_attente' ORDER BY created_at DESC"
+  );
+  return result.rows;
+}
+
+export async function approuverDecision(id, superadminId, commentaire = null) {
+  const result = await query(
+    `UPDATE decisions_rh 
+     SET statut = 'approuvee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+     WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+    [id, superadminId, commentaire]
+  );
+  return result.rows[0];
+}
+
+export async function annulerDecision(id, superadminId, commentaire = null) {
+  const result = await query(
+    `UPDATE decisions_rh 
+     SET statut = 'annulee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+     WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+    [id, superadminId, commentaire]
+  );
+  return result.rows[0];
 }
 
 export default pool;
