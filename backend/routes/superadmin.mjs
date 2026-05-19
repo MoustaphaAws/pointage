@@ -748,5 +748,105 @@ router.put("/decisions-rh/:id/annuler", async (req, res, next) => {
     next(err);
   }
 });
+// ═══════════════════════════════════════════════
+// STATS GLOBALES
+// ═══════════════════════════════════════════════
 
+router.get("/stats/global", async (_req, res, next) => {
+  try {
+    const employees = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'");
+    const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
+    const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'");
+    const pendingAbsences = await query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'");
+    
+    res.json({
+      employees: employees.rows[0].total,
+      admins: admins.rows[0].total,
+      activeUsers: activeUsers.rows[0].total,
+      absenteeismRate: 0,
+      pendingAbsences: pendingAbsences.rows[0].total,
+      lateArrivalsCount: 0,
+      monthlyOvertimeHours: 0,
+      estimatedOvertimeCost: 0,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 export default router;
+// ═══════════════════════════════════════════════
+// RÉFÉRENTIELS (services / postes)
+// ═══════════════════════════════════════════════
+
+router.get("/referentials", async (_req, res, next) => {
+  try {
+    const services = await query("SELECT nom FROM services WHERE actif = true ORDER BY nom");
+    const postes = await query("SELECT DISTINCT poste FROM employes WHERE poste IS NOT NULL ORDER BY poste");
+    res.json({
+      services: services.rows.map((r) => r.nom),
+      postes: postes.rows.map((r) => r.poste),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// RH ABSENCES
+// ═══════════════════════════════════════════════
+
+router.get("/rh-absences", async (_req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT a.id, a.date_debut, a.date_fin, a.statut, a.motif,
+              e.first_name || ' ' || e.last_name AS employe_name,
+              t.libelle AS type_absence,
+              v.first_name || ' ' || v.last_name AS valide_par
+       FROM absences a
+       JOIN employes e ON e.id = a.employe_id
+       JOIN types_absence t ON t.id = a.type_absence_id
+       LEFT JOIN employes v ON v.id = a.valide_par
+       ORDER BY a.date_debut DESC
+       LIMIT 100`
+    );
+    res.json(result.rows.map((r) => ({
+      id: String(r.id),
+      employeeName: r.employe_name,
+      typeAbsence: r.type_absence,
+      dateDebut: r.date_debut,
+      dateFin: r.date_fin,
+      statut: r.statut,
+      validePar: r.valide_par || null,
+      motif: r.motif || null,
+    })));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// ACTIVITY (activité récente)
+// ═══════════════════════════════════════════════
+
+router.get("/activity", async (_req, res, next) => {
+  try {
+    const rows = await query(
+      `SELECT id, created_at, action, entite, details
+       FROM audit_logs
+       ORDER BY created_at DESC
+       LIMIT 20`
+    );
+    res.json(rows.rows.map((row) => ({
+      id: String(row.id),
+      timestamp: row.created_at,
+      type: row.action.includes("CONFIG") ? "alert"
+        : row.action.includes("CREATE") ? "rh_validation"
+        : "badge_scan",
+      userName: row.details?.user_name || "Système",
+      details: row.details?.details || row.action,
+      severity: row.action.includes("DELETE") ? "high" : "low",
+    })));
+  } catch (err) {
+    next(err);
+  }
+});
