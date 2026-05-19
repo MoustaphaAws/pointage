@@ -600,35 +600,10 @@ router.delete("/admins/:id", async (req, res, next) => {
 
 // ═══════════════════════════════════════════════
 // NOUVELLES ROUTES SUPERVISION SUPERADMIN
+// ⚠️ ROUTES FIXES AVANT LES ROUTES AVEC :id
 // ═══════════════════════════════════════════════
 
-// Désactiver un employé
-router.put("/admins/:id/desactiver", async (req, res, next) => {
-  try {
-    const actor = await getActor(req);
-    const result = await query(
-      `UPDATE employes SET actif = false WHERE id = $1 AND role IN ('admin', 'employee')
-       RETURNING id, first_name, last_name, email, actif`,
-      [req.params.id]
-    );
-    if (!result.rowCount) {
-      return res.status(404).json({ message: "Employé non trouvé" });
-    }
-    const target = result.rows[0];
-    if (actor) {
-      await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "DESACTIVER_EMPLOYE", target: `${target.first_name} ${target.last_name}`,
-        details: "Désactivation du compte employé", ip: req.ip,
-      });
-    }
-    res.json({ success: true, message: "Employé désactivé", employe: target });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Désactiver plusieurs employés
+// Désactiver plusieurs employés (FIXE - avant :id)
 router.put("/admins/desactiver-multiple", async (req, res, next) => {
   try {
     const { ids } = req.body || {};
@@ -636,156 +611,47 @@ router.put("/admins/desactiver-multiple", async (req, res, next) => {
       return res.status(400).json({ message: "Liste d'IDs requise" });
     }
     const result = await query(
-      `UPDATE employes SET actif = false WHERE id = ANY($1::uuid[]) AND role IN ('admin', 'employee')
-       RETURNING id, first_name, last_name, email, actif`,
+      "UPDATE employes SET actif = false WHERE id = ANY($1::uuid[]) AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
       [ids]
     );
     res.json({ success: true, message: `${result.rows.length} employé(s) désactivé(s)`, employes: result.rows });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
+});
+
+// Désactiver un employé
+router.put("/admins/:id/desactiver", async (req, res, next) => {
+  try {
+    const result = await query(
+      "UPDATE employes SET actif = false WHERE id = $1 AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
+      [req.params.id]
+    );
+    if (!result.rowCount) return res.status(404).json({ message: "Employé non trouvé" });
+    res.json({ success: true, message: "Employé désactivé", employe: result.rows[0] });
+  } catch (err) { next(err); }
 });
 
 // Réactiver un employé
 router.put("/admins/:id/reactiver", async (req, res, next) => {
   try {
-    const actor = await getActor(req);
     const result = await query(
-      `UPDATE employes SET actif = true WHERE id = $1 AND role IN ('admin', 'employee')
-       RETURNING id, first_name, last_name, email, actif`,
+      "UPDATE employes SET actif = true WHERE id = $1 AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
       [req.params.id]
     );
-    if (!result.rowCount) {
-      return res.status(404).json({ message: "Employé non trouvé" });
-    }
-    const target = result.rows[0];
-    if (actor) {
-      await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "REACTIVER_EMPLOYE", target: `${target.first_name} ${target.last_name}`,
-        details: "Réactivation du compte employé", ip: req.ip,
-      });
-    }
-    res.json({ success: true, message: "Employé réactivé", employe: target });
-  } catch (err) {
-    next(err);
-  }
+    if (!result.rowCount) return res.status(404).json({ message: "Employé non trouvé" });
+    res.json({ success: true, message: "Employé réactivé", employe: result.rows[0] });
+  } catch (err) { next(err); }
 });
 
-// Voir les décisions RH en attente
-router.get("/decisions-rh", async (req, res, next) => {
-  try {
-    const result = await query(
-      "SELECT * FROM decisions_rh WHERE statut = 'en_attente' ORDER BY created_at DESC"
-    );
-    res.json(result.rows);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Approuver une décision RH
-router.put("/decisions-rh/:id/approuver", async (req, res, next) => {
-  try {
-    const actor = await getActor(req);
-    const { commentaire } = req.body || {};
-    const result = await query(
-      `UPDATE decisions_rh 
-       SET statut = 'approuvee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
-       WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
-      [req.params.id, req.auth.sub, commentaire || null]
-    );
-    if (!result.rowCount) {
-      return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
-    }
-    const decision = result.rows[0];
-    if (actor) {
-      await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "APPROUVER_DECISION", target: `Décision #${decision.id}`,
-        details: `Approbation décision ${decision.type_decision}`, ip: req.ip,
-      });
-    }
-    res.json({ success: true, message: "Décision approuvée", decision });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Annuler une décision RH
-router.put("/decisions-rh/:id/annuler", async (req, res, next) => {
-  try {
-    const actor = await getActor(req);
-    const { commentaire } = req.body || {};
-    const result = await query(
-      `UPDATE decisions_rh 
-       SET statut = 'annulee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
-       WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
-      [req.params.id, req.auth.sub, commentaire || null]
-    );
-    if (!result.rowCount) {
-      return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
-    }
-    const decision = result.rows[0];
-    if (actor) {
-      await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "ANNULER_DECISION", target: `Décision #${decision.id}`,
-        details: `Annulation décision ${decision.type_decision}`, ip: req.ip,
-      });
-    }
-    res.json({ success: true, message: "Décision annulée", decision });
-  } catch (err) {
-    next(err);
-  }
-});
-// ═══════════════════════════════════════════════
-// STATS GLOBALES
-// ═══════════════════════════════════════════════
-
-router.get("/stats/global", async (_req, res, next) => {
-  try {
-    const employees = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'");
-    const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
-    const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'");
-    const pendingAbsences = await query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'");
-    
-    res.json({
-      employees: employees.rows[0].total,
-      admins: admins.rows[0].total,
-      activeUsers: activeUsers.rows[0].total,
-      absenteeismRate: 0,
-      pendingAbsences: pendingAbsences.rows[0].total,
-      lateArrivalsCount: 0,
-      monthlyOvertimeHours: 0,
-      estimatedOvertimeCost: 0,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-export default router;
-// ═══════════════════════════════════════════════
-// RÉFÉRENTIELS (services / postes)
-// ═══════════════════════════════════════════════
-
+// ═══ RÉFÉRENTIELS ═══
 router.get("/referentials", async (_req, res, next) => {
   try {
     const services = await query("SELECT nom FROM services WHERE actif = true ORDER BY nom");
     const postes = await query("SELECT DISTINCT poste FROM employes WHERE poste IS NOT NULL ORDER BY poste");
-    res.json({
-      services: services.rows.map((r) => r.nom),
-      postes: postes.rows.map((r) => r.poste),
-    });
-  } catch (err) {
-    next(err);
-  }
+    res.json({ services: services.rows.map((r) => r.nom), postes: postes.rows.map((r) => r.poste) });
+  } catch (err) { next(err); }
 });
 
-// ═══════════════════════════════════════════════
-// RH ABSENCES
-// ═══════════════════════════════════════════════
-
+// ═══ RH ABSENCES ═══
 router.get("/rh-absences", async (_req, res, next) => {
   try {
     const result = await query(
@@ -810,15 +676,10 @@ router.get("/rh-absences", async (_req, res, next) => {
       validePar: r.valide_par || null,
       motif: r.motif || null,
     })));
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 });
 
-// ═══════════════════════════════════════════════
-// ACTIVITY (activité récente)
-// ═══════════════════════════════════════════════
-
+// ═══ ACTIVITY ═══
 router.get("/activity", async (_req, res, next) => {
   try {
     const rows = await query(
@@ -837,7 +698,55 @@ router.get("/activity", async (_req, res, next) => {
       details: row.details?.details || row.action,
       severity: row.action.includes("DELETE") ? "high" : "low",
     })));
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 });
+
+// ═══ STATS GLOBALES ═══
+router.get("/stats/global", async (_req, res, next) => {
+  try {
+    const employees = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'");
+    const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
+    const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'");
+    const pendingAbsences = await query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'");
+    res.json({
+      employees: employees.rows[0].total,
+      admins: admins.rows[0].total,
+      activeUsers: activeUsers.rows[0].total,
+      absenteeismRate: 0,
+      pendingAbsences: pendingAbsences.rows[0].total,
+      lateArrivalsCount: 0,
+      monthlyOvertimeHours: 0,
+      estimatedOvertimeCost: 0,
+    });
+  } catch (err) { next(err); }
+});
+
+// ═══ CONFIG ═══
+router.get("/config", async (_req, res, next) => {
+  try {
+    const result = await query("SELECT cle, valeur FROM configurations ORDER BY cle");
+    const config = {};
+    for (const row of result.rows) {
+      try { config[row.cle] = JSON.parse(row.valeur); } catch { config[row.cle] = row.valeur; }
+    }
+    res.json(config);
+  } catch (err) { next(err); }
+});
+
+// ═══ AUDIT LOGS ═══
+router.get("/audit-logs", async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize || 20)));
+    const offset = (page - 1) * pageSize;
+    const countResult = await query("SELECT COUNT(*)::int AS total FROM audit_logs");
+    const total = countResult.rows[0].total;
+    const result = await query("SELECT id, created_at, user_id, action, entite, details FROM audit_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2", [pageSize, offset]);
+    res.json({
+      items: result.rows.map(r => ({ id: String(r.id), timestamp: r.created_at, userId: String(r.user_id || ""), userName: r.details?.user_name || "", action: r.action, target: r.entite, details: r.details?.details || "" })),
+      total, page, pageSize, totalPages: Math.ceil(total / pageSize)
+    });
+  } catch (err) { next(err); }
+});
+
+export default router;
