@@ -633,6 +633,37 @@ router.delete("/admins/:id", async (req, res, next) => {
   }
 });
 
+// ═══ NOUVELLE ROUTE : RESET-USERS (suppression massive) ═══
+// ─── DELETE /api/admin/reset-users ───
+router.delete("/reset-users", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    
+    // Suppression de tous les employés/admin (garde le superadmin)
+    const result = await query(
+      `DELETE FROM employes WHERE role IN ('admin', 'employee') RETURNING id`
+    );
+    const deletedCount = result.rowCount;
+
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "RESET_USERS", target: "ALL_USERS",
+        details: `Réinitialisation de tous les utilisateurs (${deletedCount} supprimés)`,
+        ip: req.ip,
+      });
+    }
+
+    res.json({ 
+      success: true,
+      deletedCount,
+      message: `${deletedCount} utilisateur(s) supprimé(s) avec succès`
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ═══════════════════════════════════════════════
 // CONFIGURATION SYSTÈME
 // ═══════════════════════════════════════════════
