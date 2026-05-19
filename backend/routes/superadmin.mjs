@@ -631,7 +631,6 @@ router.put("/admins/:id/desactiver", async (req, res, next) => {
 // Désactiver plusieurs employés
 router.put("/admins/desactiver-multiple", async (req, res, next) => {
   try {
-    const actor = await getActor(req);
     const { ids } = req.body || {};
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "Liste d'IDs requise" });
@@ -641,15 +640,7 @@ router.put("/admins/desactiver-multiple", async (req, res, next) => {
        RETURNING id, first_name, last_name, email, actif`,
       [ids]
     );
-    const employes = result.rows;
-    if (actor) {
-      await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "DESACTIVER_MULTIPLE", target: `${employes.length} employés`,
-        details: `Désactivation de ${employes.length} employé(s)`, ip: req.ip,
-      });
-    }
-    res.json({ success: true, message: `${employes.length} employé(s) désactivé(s)`, employes });
+    res.json({ success: true, message: `${result.rows.length} employé(s) désactivé(s)`, employes: result.rows });
   } catch (err) {
     next(err);
   }
