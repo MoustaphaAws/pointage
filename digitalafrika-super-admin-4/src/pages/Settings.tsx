@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Card, Button } from '../components/ui/LayoutComponents';
-import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard, Trash2 } from 'lucide-react';
+import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, resetAllUsers, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
+import {
+  addReferentialValue,
+  AppSettings,
+  defaultSettings,
+  deleteReferentialValue,
+  fetchCurrentSuperAdmin,
+  fetchReferentials,
+  fetchSettings,
+  resetCounters,
+  saveSettings,
+  updateCurrentSuperAdmin,
+} from '../services/superAdminApi';
 import { useAuthStore } from '../store/useAuthStore';
 
 export default function SettingsPage() {
@@ -105,17 +116,17 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetUsers = async () => {
+  const handleResetCounters = async () => {
     const confirmReset = window.confirm(
-      '⚠️ ATTENTION : Cette action supprimera TOUS les utilisateurs (employés et admins RH). Le SuperAdmin actuel restera seul. Êtes-vous absolument sûr ?'
+      '⚠️ ATTENTION : Cette action va effacer TOUS les pointages, absences, sanctions, notifications et décisions RH. Les utilisateurs resteront inchangés. Cette opération est irréversible.\n\nConfirmez-vous la réinitialisation ?'
     );
     if (!confirmReset) return;
 
     try {
-      await resetAllUsers();
-      toast.success('Tous les utilisateurs ont été supprimés avec succès');
+      await resetCounters();
+      toast.success('Tous les compteurs ont été remis à zéro');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation des utilisateurs');
+      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation des compteurs');
     }
   };
 
@@ -459,26 +470,26 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Zone de danger : Réinitialisation des utilisateurs */}
+        {/* NOUVELLE ZONE DE DANGER : Réinitialisation des compteurs */}
         <Card title="⚠️ Zone de danger" className="md:col-span-2 border-red-200 bg-red-50/30">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
-                <Trash2 size={20} />
+                <RotateCcw size={20} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-red-700">Réinitialiser tous les utilisateurs</p>
+                <p className="text-sm font-bold text-red-700">Réinitialiser tous les compteurs</p>
                 <p className="text-xs text-red-600/80 mt-1">
-                  Cette action supprime définitivement <strong>tous les comptes</strong> (employés et administrateurs RH). 
-                  Seul votre compte SuperAdmin sera conservé. Cette opération est irréversible.
+                  Cette action efface <strong>tous les pointages, absences, sanctions, notifications et décisions RH</strong>. 
+                  Les comptes utilisateurs ne sont pas supprimés. Cette opération est irréversible.
                 </p>
                 <Button 
                   variant="danger" 
                   className="mt-3 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
-                  onClick={handleResetUsers}
+                  onClick={handleResetCounters}
                 >
-                  <Trash2 size={16} />
-                  Supprimer tous les utilisateurs
+                  <RotateCcw size={16} />
+                  Réinitialiser les compteurs
                 </Button>
               </div>
             </div>

@@ -632,6 +632,31 @@ app.put("/api/admin/decisions-rh/:id/annuler", async (req, res) => {
   res.json({ success: true, message: "Décision annulée", decision });
 });
 
+// ===== NOUVELLE ROUTE : Réinitialisation des compteurs =====
+app.post("/api/admin/reset-counters", async (req, res) => {
+  const actorResult = await query("SELECT * FROM employes WHERE id = $1 LIMIT 1", [req.auth.sub]);
+  const actor = actorResult.rows[0];
+
+  // Supprimer tous les pointages, absences, sanctions
+  await query("DELETE FROM pointages");
+  await query("DELETE FROM absences");
+  await query("DELETE FROM sanctions");
+  // Supprimer les notifications liées aux disciplines
+  await query("DELETE FROM notifications WHERE type IN ('rappel', 'avertissement', 'sanction')");
+  // Supprimer les décisions RH
+  await query("DELETE FROM decisions_rh");
+
+  await writeAuditLog({
+    user: actor,
+    action: "RESET_COUNTERS",
+    target: "ALL",
+    details: "Réinitialisation de tous les compteurs (pointages, absences, sanctions, notifications, décisions RH)",
+    ip: req.ip,
+  });
+
+  res.json({ success: true, message: "Tous les compteurs ont été réinitialisés." });
+});
+
 // ===== ANCIENNES ROUTES (GARDÉES POUR COMPATIBILITÉ) =====
 
 app.put("/api/admin/admins/:id/suspend", async (req, res) => {
