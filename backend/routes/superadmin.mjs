@@ -1173,21 +1173,34 @@ router.get("/export/global", async (req, res, next) => {
 });
 
 // ═══════════════════════════════════════════════
-// RESET USERS (danger zone)
+// RESET COUNTERS (réinitialisation des compteurs)
+// Remplace l'ancien /reset-users
 // ═══════════════════════════════════════════════
 
-router.delete("/reset-users", async (req, res, next) => {
+router.post("/reset-counters", async (req, res, next) => {
   try {
     const actor = await getActor(req);
-    await query("DELETE FROM employes WHERE role IN ('employee', 'admin')");
+    // Supprimer tous les pointages, absences et sanctions
+    await query("DELETE FROM pointages");
+    await query("DELETE FROM absences");
+    await query("DELETE FROM sanctions");
+    // Les notifications et décisions RH peuvent être conservées, mais on les vide aussi pour une remise à zéro complète
+    await query("DELETE FROM notifications WHERE type IN ('rappel', 'avertissement', 'sanction')");
+    await query("DELETE FROM decisions_rh");
+
     if (actor) {
       await writeAuditLog({
-        userId: actor.id, userName: actor.name, role: actor.role,
-        action: "RESET_ALL_USERS", target: "ALL",
-        details: "Suppression de tous les employés et admins", ip: req.ip,
+        userId: actor.id,
+        userName: actor.name,
+        role: actor.role,
+        action: "RESET_COUNTERS",
+        target: "ALL",
+        details: "Réinitialisation de tous les compteurs (pointages, absences, sanctions, notifications, décisions RH)",
+        ip: req.ip,
       });
     }
-    res.json({ success: true });
+
+    res.json({ success: true, message: "Tous les compteurs ont été réinitialisés." });
   } catch (err) {
     next(err);
   }
