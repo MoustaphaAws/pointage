@@ -289,6 +289,71 @@ router.post("/admins", async (req, res, next) => {
   }
 });
 
+// ─────────────────────────────────────────────
+// ⚠️  ROUTES BULK AVANT LES ROUTES /:id
+// Express matche les segments statiques avant les params dynamiques
+// uniquement si elles sont enregistrées en premier.
+// ─────────────────────────────────────────────
+
+// Désactiver plusieurs employés  →  PUT /admins/desactiver-multiple
+router.put("/admins/desactiver-multiple", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    const { ids } = req.body || {};
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "Liste d'IDs requise" });
+    }
+    const result = await query(
+      `UPDATE employes SET actif = false
+       WHERE id = ANY($1::uuid[]) AND role IN ('admin', 'employee')
+       RETURNING id, first_name, last_name, email, actif`,
+      [ids]
+    );
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "DESACTIVER_MULTIPLE", target: `${result.rowCount} employé(s)`,
+        details: `Désactivation en masse : ${ids.join(", ")}`, ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: `${result.rows.length} employé(s) désactivé(s)`, employes: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Supprimer plusieurs employés  →  DELETE /admins/supprimer-multiple
+router.delete("/admins/supprimer-multiple", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    // Le body d'un DELETE passe par req.body (express.json() est actif)
+    const { ids } = req.body || {};
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "Liste d'IDs requise" });
+    }
+    const result = await query(
+      `DELETE FROM employes
+       WHERE id = ANY($1::uuid[]) AND role IN ('admin', 'employee')
+       RETURNING id, first_name, last_name`,
+      [ids]
+    );
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "SUPPRIMER_MULTIPLE", target: `${result.rowCount} employé(s)`,
+        details: `Suppression en masse : ${ids.join(", ")}`, ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: `${result.rowCount} employé(s) supprimé(s)`, deleted: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────
+// Routes /:id (après les routes statiques bulk)
+// ─────────────────────────────────────────────
+
 router.put("/admins/:id", async (req, res, next) => {
   try {
     const actor = await getActor(req);
@@ -574,6 +639,58 @@ router.put("/admins/:id/reset-password", async (req, res, next) => {
   }
 });
 
+// Désactiver un employé  →  PUT /admins/:id/desactiver
+router.put("/admins/:id/desactiver", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    const result = await query(
+      `UPDATE employes SET actif = false WHERE id = $1 AND role IN ('admin', 'employee')
+       RETURNING id, first_name, last_name, email, actif`,
+      [req.params.id]
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Employé non trouvé" });
+    }
+    const target = result.rows[0];
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "DESACTIVER_EMPLOYE", target: `${target.first_name} ${target.last_name}`,
+        details: "Désactivation du compte employé", ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: "Employé désactivé", employe: target });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Réactiver un employé  →  PUT /admins/:id/reactiver
+router.put("/admins/:id/reactiver", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    const result = await query(
+      `UPDATE employes SET actif = true WHERE id = $1 AND role IN ('admin', 'employee')
+       RETURNING id, first_name, last_name, email, actif`,
+      [req.params.id]
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Employé non trouvé" });
+    }
+    const target = result.rows[0];
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "REACTIVER_EMPLOYE", target: `${target.first_name} ${target.last_name}`,
+        details: "Réactivation du compte employé", ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: "Employé réactivé", employe: target });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete("/admins/:id", async (req, res, next) => {
   try {
     const actor = await getActor(req);
@@ -599,59 +716,159 @@ router.delete("/admins/:id", async (req, res, next) => {
 });
 
 // ═══════════════════════════════════════════════
-// NOUVELLES ROUTES SUPERVISION SUPERADMIN
-// ⚠️ ROUTES FIXES AVANT LES ROUTES AVEC :id
+// DÉCISIONS RH
 // ═══════════════════════════════════════════════
 
-// Désactiver plusieurs employés (FIXE - avant :id)
-router.put("/admins/desactiver-multiple", async (req, res, next) => {
+router.get("/decisions-rh", async (req, res, next) => {
   try {
-    const { ids } = req.body || {};
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ message: "Liste d'IDs requise" });
+    const result = await query(
+      "SELECT * FROM decisions_rh WHERE statut = 'en_attente' ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/decisions-rh/:id/approuver", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    const { commentaire } = req.body || {};
+    const result = await query(
+      `UPDATE decisions_rh 
+       SET statut = 'approuvee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+       WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+      [req.params.id, req.auth.sub, commentaire || null]
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
     }
-    const result = await query(
-      "UPDATE employes SET actif = false WHERE id = ANY($1::uuid[]) AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
-      [ids]
-    );
-    res.json({ success: true, message: `${result.rows.length} employé(s) désactivé(s)`, employes: result.rows });
-  } catch (err) { next(err); }
+    const decision = result.rows[0];
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "APPROUVER_DECISION", target: `Décision #${decision.id}`,
+        details: `Approbation décision ${decision.type_decision}`, ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: "Décision approuvée", decision });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Désactiver un employé
-router.put("/admins/:id/desactiver", async (req, res, next) => {
+router.put("/decisions-rh/:id/annuler", async (req, res, next) => {
   try {
+    const actor = await getActor(req);
+    const { commentaire } = req.body || {};
     const result = await query(
-      "UPDATE employes SET actif = false WHERE id = $1 AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
-      [req.params.id]
+      `UPDATE decisions_rh 
+       SET statut = 'annulee', traite_par = $2, commentaire_superadmin = $3, date_traitement = NOW() 
+       WHERE id = $1 AND statut = 'en_attente' RETURNING *`,
+      [req.params.id, req.auth.sub, commentaire || null]
     );
-    if (!result.rowCount) return res.status(404).json({ message: "Employé non trouvé" });
-    res.json({ success: true, message: "Employé désactivé", employe: result.rows[0] });
-  } catch (err) { next(err); }
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Décision non trouvée ou déjà traitée" });
+    }
+    const decision = result.rows[0];
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "ANNULER_DECISION", target: `Décision #${decision.id}`,
+        details: `Annulation décision ${decision.type_decision}`, ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: "Décision annulée", decision });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Réactiver un employé
-router.put("/admins/:id/reactiver", async (req, res, next) => {
+// ═══════════════════════════════════════════════
+// STATS GLOBALES
+// ═══════════════════════════════════════════════
+
+router.get("/stats/global", async (_req, res, next) => {
   try {
-    const result = await query(
-      "UPDATE employes SET actif = true WHERE id = $1 AND role IN ('admin', 'employee') RETURNING id, first_name, last_name, email, actif",
-      [req.params.id]
-    );
-    if (!result.rowCount) return res.status(404).json({ message: "Employé non trouvé" });
-    res.json({ success: true, message: "Employé réactivé", employe: result.rows[0] });
-  } catch (err) { next(err); }
+    const employees = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'");
+    const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
+    const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'");
+    const pendingAbsences = await query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'");
+
+    res.json({
+      employees: employees.rows[0].total,
+      admins: admins.rows[0].total,
+      activeUsers: activeUsers.rows[0].total,
+      absenteeismRate: 0,
+      pendingAbsences: pendingAbsences.rows[0].total,
+      lateArrivalsCount: 0,
+      monthlyOvertimeHours: 0,
+      estimatedOvertimeCost: 0,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// ═══ RÉFÉRENTIELS ═══
+// ═══════════════════════════════════════════════
+// RÉFÉRENTIELS (services / postes)
+// ═══════════════════════════════════════════════
+
 router.get("/referentials", async (_req, res, next) => {
   try {
     const services = await query("SELECT nom FROM services WHERE actif = true ORDER BY nom");
     const postes = await query("SELECT DISTINCT poste FROM employes WHERE poste IS NOT NULL ORDER BY poste");
-    res.json({ services: services.rows.map((r) => r.nom), postes: postes.rows.map((r) => r.poste) });
-  } catch (err) { next(err); }
+    res.json({
+      services: services.rows.map((r) => r.nom),
+      postes: postes.rows.map((r) => r.poste),
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// ═══ RH ABSENCES ═══
+// Ajouter une valeur référentielle  →  POST /referentials/:kind
+router.post("/referentials/:kind", async (req, res, next) => {
+  try {
+    const { kind } = req.params;
+    const { value } = req.body || {};
+    if (!value || !["services", "postes"].includes(kind)) {
+      return res.status(400).json({ message: "Paramètres invalides." });
+    }
+    if (kind === "services") {
+      await query("INSERT INTO services (nom, actif) VALUES ($1, true) ON CONFLICT (nom) DO NOTHING", [value]);
+      const result = await query("SELECT nom FROM services WHERE actif = true ORDER BY nom");
+      return res.json({ items: result.rows.map((r) => r.nom) });
+    }
+    // postes : pas de table dédiée — stockés dans employes.poste
+    return res.status(501).json({ message: "Ajout de poste non supporté via cette route." });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Supprimer une valeur référentielle  →  DELETE /referentials/:kind/:value
+router.delete("/referentials/:kind/:value", async (req, res, next) => {
+  try {
+    const { kind, value } = req.params;
+    if (!["services", "postes"].includes(kind)) {
+      return res.status(400).json({ message: "Paramètres invalides." });
+    }
+    if (kind === "services") {
+      await query("UPDATE services SET actif = false WHERE nom = $1", [value]);
+      const result = await query("SELECT nom FROM services WHERE actif = true ORDER BY nom");
+      return res.json({ items: result.rows.map((r) => r.nom) });
+    }
+    return res.status(501).json({ message: "Suppression de poste non supportée via cette route." });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// RH ABSENCES
+// ═══════════════════════════════════════════════
+
 router.get("/rh-absences", async (_req, res, next) => {
   try {
     const result = await query(
@@ -676,10 +893,15 @@ router.get("/rh-absences", async (_req, res, next) => {
       validePar: r.valide_par || null,
       motif: r.motif || null,
     })));
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
-// ═══ ACTIVITY ═══
+// ═══════════════════════════════════════════════
+// ACTIVITY (activité récente)
+// ═══════════════════════════════════════════════
+
 router.get("/activity", async (_req, res, next) => {
   try {
     const rows = await query(
@@ -694,59 +916,284 @@ router.get("/activity", async (_req, res, next) => {
       type: row.action.includes("CONFIG") ? "alert"
         : row.action.includes("CREATE") ? "rh_validation"
         : "badge_scan",
-      userName: row.details?.user_name || "Système",
-      details: row.details?.details || row.action,
+      userName: normalizeJsonbObject(row.details).user_name || "Système",
+      details: normalizeJsonbObject(row.details).details || row.action,
       severity: row.action.includes("DELETE") ? "high" : "low",
     })));
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
-// ═══ STATS GLOBALES ═══
-router.get("/stats/global", async (_req, res, next) => {
-  try {
-    const employees = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'");
-    const admins = await query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'");
-    const activeUsers = await query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'");
-    const pendingAbsences = await query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'");
-    res.json({
-      employees: employees.rows[0].total,
-      admins: admins.rows[0].total,
-      activeUsers: activeUsers.rows[0].total,
-      absenteeismRate: 0,
-      pendingAbsences: pendingAbsences.rows[0].total,
-      lateArrivalsCount: 0,
-      monthlyOvertimeHours: 0,
-      estimatedOvertimeCost: 0,
-    });
-  } catch (err) { next(err); }
-});
+// ═══════════════════════════════════════════════
+// AUDIT LOGS
+// ═══════════════════════════════════════════════
 
-// ═══ CONFIG ═══
-router.get("/config", async (_req, res, next) => {
+router.get("/audit-logs/export", async (req, res, next) => {
   try {
-    const result = await query("SELECT cle, valeur FROM configurations ORDER BY cle");
-    const config = {};
-    for (const row of result.rows) {
-      try { config[row.cle] = JSON.parse(row.valeur); } catch { config[row.cle] = row.valeur; }
+    const { q, action, actions, dateFrom, dateTo } = req.query;
+    const conditions = ["1=1"];
+    const params = [];
+
+    if (q) {
+      params.push(`%${q}%`);
+      conditions.push(`(user_name ILIKE $${params.length} OR target ILIKE $${params.length} OR action ILIKE $${params.length})`);
     }
-    res.json(config);
-  } catch (err) { next(err); }
+    if (action) {
+      params.push(action);
+      conditions.push(`action = $${params.length}`);
+    }
+    if (actions) {
+      const list = String(actions).split(",").map((s) => s.trim()).filter(Boolean);
+      if (list.length) {
+        params.push(list);
+        conditions.push(`action = ANY($${params.length}::text[])`);
+      }
+    }
+    if (dateFrom) {
+      params.push(dateFrom);
+      conditions.push(`created_at >= $${params.length}::timestamptz`);
+    }
+    if (dateTo) {
+      params.push(dateTo);
+      conditions.push(`created_at <= $${params.length}::timestamptz`);
+    }
+
+    const result = await query(
+      `SELECT id, created_at, user_name, role, action, target, details, ip
+       FROM audit_logs
+       WHERE ${conditions.join(" AND ")}
+       ORDER BY created_at DESC`,
+      params
+    );
+
+    const rows = result.rows;
+    const csvLines = [
+      ["ID", "Date", "Utilisateur", "Rôle", "Action", "Cible", "Détails", "IP"].join(";"),
+      ...rows.map((r) => {
+        const det = normalizeJsonbObject(r.details);
+        return [
+          r.id,
+          r.created_at ? new Date(r.created_at).toISOString() : "",
+          r.user_name || "",
+          r.role || "",
+          r.action || "",
+          r.target || "",
+          det.details || "",
+          r.ip || "",
+        ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";");
+      }),
+    ];
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="audit-logs-${Date.now()}.csv"`);
+    res.send("\uFEFF" + csvLines.join("\r\n")); // BOM pour Excel
+  } catch (err) {
+    next(err);
+  }
 });
 
-// ═══ AUDIT LOGS ═══
 router.get("/audit-logs", async (req, res, next) => {
   try {
-    const page = Math.max(1, Number(req.query.page || 1));
-    const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize || 20)));
-    const offset = (page - 1) * pageSize;
-    const countResult = await query("SELECT COUNT(*)::int AS total FROM audit_logs");
+    const {
+      q, action, actions, dateFrom, dateTo,
+      page = "1", pageSize = "50",
+      sortBy = "created_at", sortOrder = "desc",
+    } = req.query;
+
+    const allowedSort = ["created_at", "user_name", "action", "target"];
+    const safeSort = allowedSort.includes(sortBy) ? sortBy : "created_at";
+    const safeOrder = sortOrder === "asc" ? "ASC" : "DESC";
+
+    const conditions = ["1=1"];
+    const params = [];
+
+    if (q) {
+      params.push(`%${q}%`);
+      conditions.push(`(user_name ILIKE $${params.length} OR target ILIKE $${params.length} OR action ILIKE $${params.length})`);
+    }
+    if (action) {
+      params.push(action);
+      conditions.push(`action = $${params.length}`);
+    }
+    if (actions) {
+      const list = String(actions).split(",").map((s) => s.trim()).filter(Boolean);
+      if (list.length) {
+        params.push(list);
+        conditions.push(`action = ANY($${params.length}::text[])`);
+      }
+    }
+    if (dateFrom) {
+      params.push(dateFrom);
+      conditions.push(`created_at >= $${params.length}::timestamptz`);
+    }
+    if (dateTo) {
+      params.push(dateTo);
+      conditions.push(`created_at <= $${params.length}::timestamptz`);
+    }
+
+    const whereClause = conditions.join(" AND ");
+
+    const countResult = await query(
+      `SELECT COUNT(*)::int AS total FROM audit_logs WHERE ${whereClause}`,
+      params
+    );
     const total = countResult.rows[0].total;
-    const result = await query("SELECT id, created_at, user_id, action, entite, details FROM audit_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2", [pageSize, offset]);
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const size = Math.min(200, Math.max(1, parseInt(pageSize, 10) || 50));
+    const offset = (pageNum - 1) * size;
+
+    params.push(size, offset);
+    const result = await query(
+      `SELECT id, created_at, user_name, role, action, target, details, ip
+       FROM audit_logs
+       WHERE ${whereClause}
+       ORDER BY ${safeSort} ${safeOrder}
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
     res.json({
-      items: result.rows.map(r => ({ id: String(r.id), timestamp: r.created_at, userId: String(r.user_id || ""), userName: r.details?.user_name || "", action: r.action, target: r.entite, details: r.details?.details || "" })),
-      total, page, pageSize, totalPages: Math.ceil(total / pageSize)
+      items: result.rows.map((r) => {
+        const det = normalizeJsonbObject(r.details);
+        return {
+          id: String(r.id),
+          timestamp: r.created_at,
+          userName: r.user_name || "Système",
+          role: r.role || "",
+          action: r.action,
+          target: r.target || "",
+          details: det.details || "",
+          ip: r.ip || "",
+        };
+      }),
+      total,
+      page: pageNum,
+      pageSize: size,
+      totalPages: Math.ceil(total / size),
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
+// ═══════════════════════════════════════════════
+// CONFIGURATION (GET + PUT)
+// ═══════════════════════════════════════════════
+
+router.get("/config", async (_req, res, next) => {
+  try {
+    const result = await query("SELECT cle, valeur FROM app_config ORDER BY cle");
+    if (!result.rowCount) {
+      // Retourner les valeurs par défaut si la table est vide
+      return res.json({
+        lateThreshold: 3,
+        lateWarningThreshold: 5,
+        lateSanctionThreshold: 6,
+        absenceThreshold: 1,
+        absenceSanctionThreshold: 2,
+        defaultEntry: "08:30",
+        defaultExit: "17:30",
+        requireJustification: true,
+        notifyOnAbsence3Days: true,
+        notifySuspiciousRhValidation: true,
+        dashboardLateMinutesMin: 15,
+        overtimeHourlyRateFcfa: 4000,
+      });
+    }
+    // Construire un objet à partir des lignes clé/valeur
+    const config = {};
+    for (const row of result.rows) {
+      try {
+        config[row.cle] = JSON.parse(row.valeur);
+      } catch {
+        config[row.cle] = row.valeur;
+      }
+    }
+    res.json(config);
+  } catch (err) {
+    // Si la table n'existe pas encore, retourner les défauts plutôt qu'une erreur 500
+    if (err.code === "42P01") {
+      return res.json({
+        lateThreshold: 3,
+        lateWarningThreshold: 5,
+        lateSanctionThreshold: 6,
+        absenceThreshold: 1,
+        absenceSanctionThreshold: 2,
+        defaultEntry: "08:30",
+        defaultExit: "17:30",
+        requireJustification: true,
+        notifyOnAbsence3Days: true,
+        notifySuspiciousRhValidation: true,
+        dashboardLateMinutesMin: 15,
+        overtimeHourlyRateFcfa: 4000,
+      });
+    }
+    next(err);
+  }
+});
+
+router.put("/config", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    const settings = req.body || {};
+    for (const [cle, valeur] of Object.entries(settings)) {
+      await query(
+        `INSERT INTO app_config (cle, valeur) VALUES ($1, $2::jsonb)
+         ON CONFLICT (cle) DO UPDATE SET valeur = EXCLUDED.valeur, updated_at = NOW()`,
+        [cle, JSON.stringify(valeur)]
+      );
+    }
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "UPDATE_CONFIG", target: "APP_CONFIG",
+        details: "Mise à jour de la configuration applicative", ip: req.ip,
+      });
+    }
+    res.json({ success: true, message: "Configuration sauvegardée" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// EXPORT GLOBAL
+// ═══════════════════════════════════════════════
+
+router.get("/export/global", async (req, res, next) => {
+  try {
+    const { type, format, month, service } = req.query;
+    // Implémentation minimale — à étendre selon vos besoins
+    return res.status(501).json({ message: "Export global non encore implémenté." });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// RESET USERS (danger zone)
+// ═══════════════════════════════════════════════
+
+router.delete("/reset-users", async (req, res, next) => {
+  try {
+    const actor = await getActor(req);
+    await query("DELETE FROM employes WHERE role IN ('employee', 'admin')");
+    if (actor) {
+      await writeAuditLog({
+        userId: actor.id, userName: actor.name, role: actor.role,
+        action: "RESET_ALL_USERS", target: "ALL",
+        details: "Suppression de tous les employés et admins", ip: req.ip,
+      });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// ⚠️  export default TOUJOURS EN DERNIER
+// ═══════════════════════════════════════════════
 export default router;
