@@ -774,7 +774,6 @@ router.get("/export/global", async (_req, res, next) => {
 router.post("/reset-counters", async (req, res, next) => {
   try {
     const actor = await getActor(req);
-<<<<<<< HEAD
     // Supprimer tous les pointages, absences et sanctions
     await query("DELETE FROM pointages");
     await query("DELETE FROM absences");
@@ -799,18 +798,8 @@ router.post("/reset-counters", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-=======
-    await query("DELETE FROM employes WHERE role IN ('employee','admin')");
-    if (actor) await writeAuditLog({ userId: actor.id, userName: actor.name, role: actor.role, action: "RESET_ALL_USERS", target: "ALL", details: "Suppression de tous les employés et admins", ip: req.ip });
-    res.json({ success: true });
-  } catch (err) { next(err); }
->>>>>>> e21d90b94f0368b09f4d9daa0468df2c5bf588a4
 });
 
 // ⚠️  export default TOUJOURS EN DERNIER
-<<<<<<< HEAD
 // ═══════════════════════════════════════════════
 export default router;
-=======
-export default router;
->>>>>>> e21d90b94f0368b09f4d9daa0468df2c5bf588a4
