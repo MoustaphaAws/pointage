@@ -116,7 +116,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetCounters = as    const confirmReset = window.confirm(
+  const handleResetCounters = async () => {
+    const confirmReset = window.confirm(
       '⚠️ ATTENTION : ACTION IRRÉVERSIBLE\n\nCette opération va SUPPRIMER :\n- Tous les utilisateurs (Employés et Admins)\n- Tous les pointages et absences\n- Tous les logs d\'audit et notifications\n- Toutes les sanctions\n\nSeul votre compte SuperAdmin sera conservé. Confirmez-vous ?'
     );
     if (!confirmReset) return;
@@ -457,7 +458,6 @@ export default function SettingsPage() {
               </div>
               {settings.logoBase64 && (
                 <div className="mt-3 p-2 bg-white rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-500 mb-2">Aperçu:</p>
                   <img 
                     src={settings.logoBase64} 
                     alt="Logo" 
@@ -478,10 +478,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-red-700">Réinitialisation totale de l'application</p>
-                <p className="text-xs text-red-600/80 mt-1">
-                  Cette action est <strong>définitive</strong>. Elle va supprimer <strong>TOUS les utilisateurs (sauf vous)</strong>, 
-                  tous les pointages, absences, sanctions et tous les journaux d'audit.
-                </p>
+
                 <Button 
                   variant="danger" 
                   className="mt-3 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"

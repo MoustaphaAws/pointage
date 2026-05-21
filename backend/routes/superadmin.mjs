@@ -760,9 +760,162 @@ router.put("/config", async (req, res, next) => {
 // EXPORT GLOBAL
 // ═══════════════════════════════════════════════
 
-router.get("/export/global", async (_req, res, next) => {
+router.get("/export/global", async (req, res, next) => {
   try {
-    res.status(501).json({ message: "Export global non encore implémenté." });
+    const { type, format, month, service: serviceName } = req.query;
+    
+    // On redirige vers les logiques d'export existantes en adaptant les paramètres
+    let serviceId = null;
+    if (serviceName && serviceName !== "Tous les Services") {
+      const srvResult = await query("SELECT id FROM services WHERE nom = $1", [serviceName]);
+      if (srvResult.rowCount) serviceId = srvResult.rows[0].id;
+    }
+
+    // On prépare la requête pour rediriger vers les fonctions d'export de routes/exports.mjs
+    // Mais pour plus de fiabilité ici, on implémente directement la logique car c'est une route SuperAdmin dédiée
+    const isPdf = String(format).toLowerCase() === "pdf";
+    
+    if (type === "pointages") {
+      const startDate = month ? `${month}-01` : new Date().toISOString().slice(0, 8) + "01";
+      const endDate = month
+        ? new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]), 0).toISOString().split("T")[0]
+        : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0];
+
+      let sql = `SELECT e.matricule, e.first_name || ' ' || e.last_name AS nom,
+                        e.poste, s.nom AS service,
+                        p.date, p.heure_arrivee, p.heure_depart,
+                        p.statut, p.retard_minutes, p.heures_sup_minutes, p.duree_travail_minutes
+                 FROM pointages p
+                 JOIN employes e ON e.id = p.employe_id
+                 JOIN services s ON s.id = e.service_id
+                 WHERE p.date >= $1 AND p.date <= $2`;
+      const params = [startDate, endDate];
+      if (serviceId) { params.push(serviceId); sql += ` AND e.service_id = $${params.length}`; }
+      sql += " ORDER BY p.date, e.last_name";
+
+      const result = await query(sql, params);
+      
+      if (isPdf) {
+        const { generateReportPDF } = await import("../utils/pdfHelper.mjs");
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="pointages_${month || "all"}.pdf"`);
+        await generateReportPDF(res, {
+            title: "Rapport Mensuel des Pointages",
+            columns: [
+              { header: "Matricule", key: "matricule", width: 1.2 },
+              { header: "Nom", key: "nom", width: 2.5 },
+              { header: "Service", key: "service", width: 1.5 },
+              { header: "Date", key: "date", width: 1.2 },
+              { header: "Arrivée", key: "heure_arrivee", width: 1 },
+              { header: "Départ", key: "heure_depart", width: 1 },
+              { header: "H.Sup", key: "heures_sup_minutes", width: 0.8 }
+            ],
+            rows: result.rows,
+            metadata: { period: month || "Toutes", service: serviceName || "Tous les Services" }
+        });
+        return;
+      } else {
+        // CSV
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="pointages_${month || "all"}.csv"`);
+        res.write("Matricule,Nom,Poste,Service,Date,Arrivee,Depart,Statut,Retard,HSup,Duree\n");
+        result.rows.forEach(r => {
+          res.write(`${r.matricule},"${r.nom}","${r.poste}","${r.service}",${r.date},${r.heure_arrivee || ""},${r.heure_depart || ""},${r.statut},${r.retard_minutes},${r.heures_sup_minutes},${r.duree_travail_minutes}\n`);
+        });
+        return res.end();
+      }
+    }
+
+    if (type === "absences") {
+      let sql = `SELECT e.matricule, e.first_name || ' ' || e.last_name AS nom,
+                        t.libelle AS type_absence,
+                        a.date_debut, a.date_fin, a.statut
+                 FROM absences a
+                 JOIN employes e ON e.id = a.employe_id
+                 JOIN types_absence t ON t.id = a.type_absence_id
+                 WHERE 1=1`;
+      const params = [];
+      if (month) {
+        params.push(`${month}-01`);
+        sql += ` AND a.date_debut >= $${params.length}`;
+        const endDate = new Date(parseInt(month.split("-")[0]), parseInt(month.split("-")[1]), 0).toISOString().split("T")[0];
+        params.push(endDate);
+        sql += ` AND a.date_debut <= $${params.length}`;
+      }
+      if (serviceId) { params.push(serviceId); sql += ` AND e.service_id = $${params.length}`; }
+      sql += " ORDER BY a.date_debut DESC";
+
+      const result = await query(sql, params);
+
+      if (isPdf) {
+        const { generateReportPDF } = await import("../utils/pdfHelper.mjs");
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="absences_${month || "all"}.pdf"`);
+        await generateReportPDF(res, {
+            title: "Rapport des Absences",
+            columns: [
+              { header: "Matricule", key: "matricule", width: 1.2 },
+              { header: "Nom", key: "nom", width: 2.5 },
+              { header: "Type", key: "type_absence", width: 2 },
+              { header: "Début", key: "date_debut", width: 1.2 },
+              { header: "Fin", key: "date_fin", width: 1.2 },
+              { header: "Statut", key: "statut", width: 1.2 }
+            ],
+            rows: result.rows,
+            metadata: { period: month || "Toutes", service: serviceName || "Tous les Services" }
+        });
+        return;
+      } else {
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="absences_${month || "all"}.csv"`);
+        res.write("Matricule,Nom,Type,Debut,Fin,Statut\n");
+        result.rows.forEach(r => {
+          res.write(`${r.matricule},"${r.nom}","${r.type_absence}",${r.date_debut},${r.date_fin},${r.statut}\n`);
+        });
+        return res.end();
+      }
+    }
+
+    if (type === "disciplinaire") {
+      let sql = `SELECT e.matricule, e.first_name || ' ' || e.last_name AS nom,
+                        s.type_sanction, s.motif, s.statut, s.mois_reference
+                 FROM sanctions s
+                 JOIN employes e ON e.id = s.employe_id
+                 WHERE 1=1`;
+      const params = [];
+      if (serviceId) { params.push(serviceId); sql += ` AND e.service_id = $${params.length}`; }
+      sql += " ORDER BY s.created_at DESC";
+
+      const result = await query(sql, params);
+
+      if (isPdf) {
+        const { generateReportPDF } = await import("../utils/pdfHelper.mjs");
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", 'attachment; filename="disciplinaire.pdf"');
+        await generateReportPDF(res, {
+            title: "Audit Disciplinaire & Sanctions",
+            columns: [
+              { header: "Matricule", key: "matricule", width: 1.2 },
+              { header: "Nom", key: "nom", width: 2.5 },
+              { header: "Type", key: "type_sanction", width: 1.5 },
+              { header: "Motif", key: "motif", width: 2.5 },
+              { header: "Mois", key: "mois_reference", width: 1.2 }
+            ],
+            rows: result.rows
+        });
+        return;
+      } else {
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", 'attachment; filename="disciplinaire.csv"');
+        res.write("Matricule,Nom,Type,Motif,Mois\n");
+        result.rows.forEach(r => {
+          res.write(`${r.matricule},"${r.nom}","${r.type_sanction}","${r.motif}",${r.mois_reference}\n`);
+        });
+        return res.end();
+      }
+    }
+
+    res.status(400).json({ message: "Type d'export inconnu." });
   } catch (err) { next(err); }
 });
 
