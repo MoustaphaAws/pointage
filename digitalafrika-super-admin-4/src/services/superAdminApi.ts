@@ -288,11 +288,12 @@ export async function updateCurrentSuperAdmin(payload: {
   return response.data;
 }
 
-export async function resetAllUsers(): Promise<void> {
-  await api.delete("/admin/reset-users");
+// ⚠️  resetAllUsers a été remplacé par resetCounters
+export async function resetCounters(): Promise<void> {
+  await api.post("/admin/reset-counters");
 }
 
-// ===== NOUVELLES FONCTIONS SUPERVISION SUPERADMIN =====
+// ===== FONCTIONS SUPERVISION SUPERADMIN =====
 
 export async function desactiverEmploye(id: string): Promise<void> {
   await api.put(`/admin/admins/${id}/desactiver`);

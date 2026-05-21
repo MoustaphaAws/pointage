@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Card, Button } from '../components/ui/LayoutComponents';
-import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard, Trash2 } from 'lucide-react';
+import { Save, AlertCircle, Clock, Calendar, ShieldCheck, Zap, LayoutDashboard, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { addReferentialValue, AppSettings, defaultSettings, deleteReferentialValue, fetchCurrentSuperAdmin, fetchReferentials, fetchSettings, resetAllUsers, saveSettings, updateCurrentSuperAdmin } from '../services/superAdminApi';
+import {
+  addReferentialValue,
+  AppSettings,
+  defaultSettings,
+  deleteReferentialValue,
+  fetchCurrentSuperAdmin,
+  fetchReferentials,
+  fetchSettings,
+  resetCounters,
+  saveSettings,
+  updateCurrentSuperAdmin,
+} from '../services/superAdminApi';
 import { useAuthStore } from '../store/useAuthStore';
 
 export default function SettingsPage() {
@@ -105,17 +116,17 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetUsers = async () => {
+  const handleResetCounters = async () => {
     const confirmReset = window.confirm(
-      '⚠️ ATTENTION : Cette action supprimera TOUS les utilisateurs (employés et admins RH). Le SuperAdmin actuel restera seul. Êtes-vous absolument sûr ?'
+      '⚠️ ATTENTION : ACTION IRRÉVERSIBLE\n\nCette opération va SUPPRIMER :\n- Tous les utilisateurs (Employés et Admins)\n- Tous les pointages et absences\n- Tous les logs d\'audit et notifications\n- Toutes les sanctions\n\nSeul votre compte SuperAdmin sera conservé. Confirmez-vous ?'
     );
     if (!confirmReset) return;
 
     try {
-      await resetAllUsers();
-      toast.success('Tous les utilisateurs ont été supprimés avec succès');
+      await resetCounters();
+      toast.success('Réinitialisation totale effectuée avec succès');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation des utilisateurs');
+      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation');
     }
   };
 
@@ -419,8 +430,8 @@ export default function SettingsPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         if (file.size > 500 * 1024) {
-                          toast.error('Le fichier ne doit pas dépasser 500KB');
-                          return;
+                           toast.error('Le fichier ne doit pas dépasser 500KB');
+                           return;
                         }
                         const reader = new FileReader();
                         reader.onload = () => {
@@ -447,7 +458,6 @@ export default function SettingsPage() {
               </div>
               {settings.logoBase64 && (
                 <div className="mt-3 p-2 bg-white rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-500 mb-2">Aperçu:</p>
                   <img 
                     src={settings.logoBase64} 
                     alt="Logo" 
@@ -459,26 +469,23 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Zone de danger : Réinitialisation des utilisateurs */}
-        <Card title="⚠️ Zone de danger" className="md:col-span-2 border-red-200 bg-red-50/30">
+        {/* NOUVELLE ZONE DE DANGER : Réinitialisation complète */}
+        <Card title="⚠️ Zone de danger critique" className="md:col-span-2 border-red-200 bg-red-50/30">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
-                <Trash2 size={20} />
+                <RotateCcw size={20} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-red-700">Réinitialiser tous les utilisateurs</p>
-                <p className="text-xs text-red-600/80 mt-1">
-                  Cette action supprime définitivement <strong>tous les comptes</strong> (employés et administrateurs RH). 
-                  Seul votre compte SuperAdmin sera conservé. Cette opération est irréversible.
-                </p>
+                <p className="text-sm font-bold text-red-700">Réinitialisation totale de l'application</p>
+
                 <Button 
                   variant="danger" 
                   className="mt-3 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
-                  onClick={handleResetUsers}
+                  onClick={handleResetCounters}
                 >
-                  <Trash2 size={16} />
-                  Supprimer tous les utilisateurs
+                  <RotateCcw size={16} />
+                  Réinitialiser toute l'application
                 </Button>
               </div>
             </div>
