@@ -311,9 +311,7 @@ export async function supprimerEmploye(id: string): Promise<void> {
 }
 
 export async function supprimerPlusieursEmployes(ids: string[]): Promise<void> {
-  for (const id of ids) {
-    await api.delete(`/admin/admins/${id}`);
-  }
+  await api.delete("/admin/admins/supprimer-multiple", { data: { ids } });
 }
 
 export async function getDecisionsEnAttente(): Promise<any[]> {

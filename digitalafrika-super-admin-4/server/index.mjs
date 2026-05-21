@@ -69,6 +69,99 @@ app.post("/api/auth/login", async (req, res) => {
   });
 });
 
+// ===== INSCRIPTION ENTREPRISE =====
+app.post("/api/entreprises/register", async (req, res) => {
+  const { nom, email, password, plan_id } = req.body || {};
+
+  // Validation des champs requis
+  if (!nom || !email || !password || !plan_id) {
+    return res.status(400).json({ message: "Tous les champs sont requis." });
+  }
+
+  // Validation du nom
+  if (nom.trim().length < 2) {
+    return res.status(400).json({ message: "Le nom de l'entreprise doit contenir au moins 2 caractères." });
+  }
+
+  // Validation de l'email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "Format d'email invalide." });
+  }
+
+  // Validation du mot de passe
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ 
+      message: "Le mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un symbole." 
+    });
+  }
+
+  // Vérifier si le plan existe
+  const planResult = await query("SELECT id FROM plans WHERE id = $1 AND is_active = true", [plan_id]);
+  if (!planResult.rowCount) {
+    return res.status(400).json({ message: "Le plan sélectionné n'existe pas." });
+  }
+
+  try {
+    // Vérifier si l'email est déjà utilisé
+    const emailCheck = await query(
+      "SELECT id FROM entreprises WHERE email = $1",
+      [String(email).toLowerCase()]
+    );
+    
+    if (emailCheck.rowCount > 0) {
+      return res.status(409).json({ message: "Cet email est déjà utilisé par une autre entreprise." });
+    }
+
+    // Générer le slug à partir du nom
+    const slug = String(nom)
+      .toLowerCase()
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Enlever les accents
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    // Vérifier si le slug est déjà utilisé
+    const slugCheck = await query("SELECT id FROM entreprises WHERE slug = $1", [slug]);
+    const finalSlug = slugCheck.rowCount > 0 ? `${slug}-${Date.now()}` : slug;
+
+    // Hasher le mot de passe
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
+
+    // Créer l'entreprise
+    const result = await query(
+      `INSERT INTO entreprises (nom, slug, email, password_hash, plan_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, nom, slug, email, plan_id, subscription_status, trial_ends_at, created_at`,
+      [nom.trim(), finalSlug, String(email).toLowerCase(), password_hash, plan_id]
+    );
+
+    const entreprise = result.rows[0];
+
+    console.log(`✅ Nouvelle entreprise créée : ${entreprise.nom} (${entreprise.email})`);
+
+    res.status(201).json({
+      message: "Entreprise créée avec succès !",
+      entreprise: {
+        id: String(entreprise.id),
+        nom: entreprise.nom,
+        slug: entreprise.slug,
+        email: entreprise.email,
+        plan_id: entreprise.plan_id,
+        subscription_status: entreprise.subscription_status,
+        trial_ends_at: entreprise.trial_ends_at,
+        created_at: entreprise.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error("Erreur lors de la création de l'entreprise :", error);
+    res.status(500).json({ message: "Erreur serveur lors de la création de l'entreprise." });
+  }
+});
 app.use("/api/admin", requireAuth, requireSuperAdmin);
 
 app.get("/api/admin/admins", async (_req, res) => {

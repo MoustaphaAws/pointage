@@ -73,8 +73,62 @@ CREATE TABLE IF NOT EXISTS sanctions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ===== NOUVELLE TABLE DÉCISIONS RH =====
+CREATE TABLE IF NOT EXISTS decisions_rh (
+  id SERIAL PRIMARY KEY,
+  rh_id INTEGER NOT NULL REFERENCES employes(id),
+  employe_id INTEGER REFERENCES employes(id),
+  type_decision VARCHAR(50) NOT NULL,
+  decision_id INTEGER,
+  action VARCHAR(100) NOT NULL,
+  details JSONB DEFAULT '{}'::jsonb,
+  statut VARCHAR(20) NOT NULL DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'approuvee', 'annulee')),
+  commentaire_superadmin TEXT,
+  traite_par INTEGER REFERENCES employes(id),
+  date_traitement TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_absences_employe ON absences(employe_id);
 CREATE INDEX IF NOT EXISTS idx_absences_dates ON absences(date_debut, date_fin);
 CREATE INDEX IF NOT EXISTS idx_pointages_employe ON pointages(employe_id);
 CREATE INDEX IF NOT EXISTS idx_pointages_date ON pointages(date_pointage);
 CREATE INDEX IF NOT EXISTS idx_sanctions_employe ON sanctions(employe_id);
+CREATE INDEX IF NOT EXISTS idx_decisions_rh_statut ON decisions_rh(statut);
+CREATE INDEX IF NOT EXISTS idx_decisions_rh_rh ON decisions_rh(rh_id);
+
+-- ===== TABLE ENTREPRISES =====
+CREATE TABLE IF NOT EXISTS entreprises (
+  id SERIAL PRIMARY KEY,
+  nom VARCHAR(160) UNIQUE NOT NULL,
+  slug VARCHAR(160) UNIQUE NOT NULL,
+  email VARCHAR(160) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  plan_id INTEGER NOT NULL DEFAULT 1,
+  subscription_status VARCHAR(20) NOT NULL DEFAULT 'trial' CHECK (subscription_status IN ('trial', 'active', 'expired', 'cancelled')),
+  trial_ends_at DATE DEFAULT (CURRENT_DATE + INTERVAL '14 days'),
+  subscription_ends_at DATE,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ===== TABLE PLANS (Formules d'abonnement) =====
+CREATE TABLE IF NOT EXISTS plans (
+  id SERIAL PRIMARY KEY,
+  nom VARCHAR(50) NOT NULL,
+  slug VARCHAR(50) UNIQUE NOT NULL,
+  prix DECIMAL(10,2) NOT NULL DEFAULT 0,
+  max_employes INTEGER NOT NULL DEFAULT 10,
+  fonctionnalites JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- ===== AJOUTER company_id À LA TABLE employes =====
+ALTER TABLE employes ADD COLUMN IF NOT EXISTS entreprise_id INTEGER REFERENCES entreprises(id) ON DELETE CASCADE;
+
+-- ===== INSÉRER LES PLANS PAR DÉFAUT =====
+INSERT INTO plans (nom, slug, prix, max_employes, fonctionnalites) VALUES
+('Starter', 'starter', 0, 10, '{"pointage_base": true, "rapports_simples": true, "export_excel": false, "geolocalisation": false}'::jsonb),
+('Pro', 'pro', 29000, 50, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true}'::jsonb),
+('Enterprise', 'enterprise', 99000, -1, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true, "api": true, "support_dedie": true, "personnalisation": true}'::jsonb)
+ON CONFLICT (slug) DO NOTHING;

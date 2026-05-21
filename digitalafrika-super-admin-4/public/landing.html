@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Time - Le pointage simplifié</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="landing.css">
+</head>
+<body class="bg-gray-50">
+    
+    <!-- NAVBAR -->
+    <nav class="bg-white shadow-md fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">⏱️</span>
+                <span class="text-2xl font-bold text-[#1e3a5f]">One Time</span>
+            </div>
+            
+            <!-- Boutons -->
+            <div class="flex gap-3">
+                <button onclick="openLogin()" class="px-4 py-2 border-2 border-[#1e3a5f] text-[#1e3a5f] rounded-lg font-medium hover:bg-[#1e3a5f] hover:text-white transition">
+                    Se connecter
+                </button>
+                <button onclick="scrollToPlans()" class="px-4 py-2 bg-[#f97316] text-white rounded-lg font-medium hover:bg-orange-600 transition">
+                    Essai gratuit
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="pt-32 pb-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-5xl md:text-6xl font-bold text-[#1e3a5f] mb-6 fade-in">
+                Le pointage simplifié<br>pour votre entreprise
+            </h1>
+            <p class="text-xl text-gray-600 mb-10 fade-in">
+                Gérez les présences de vos employés en toute simplicité.<br>Une solution adaptée à toutes les entreprises.
+            </p>
+            <div class="flex justify-center gap-4 fade-in">
+                <button onclick="scrollToPlans()" class="px-8 py-4 bg-[#f97316] text-white text-lg rounded-xl font-semibold hover:bg-orange-600 transition shadow-lg">
+                    Démarrer maintenant
+                </button>
+                <button onclick="scrollToPlans()" class="px-8 py-4 border-2 border-[#1e3a5f] text-[#1e3a5f] text-lg rounded-xl font-semibold hover:bg-[#1e3a5f] hover:text-white transition">
+                    Voir les offres
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION OFFRES -->
+    <section id="plans" class="py-20 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold text-center text-[#1e3a5f] mb-4 fade-in">
+                Nos offres
+            </h2>
+            <p class="text-center text-gray-600 mb-12 fade-in">
+                Choisissez la formule qui correspond à votre entreprise
+            </p>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                
+                <!-- Plan Starter -->
+                <div class="plan-card bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-100 hover:border-[#f97316] transition fade-in">
+                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2">Starter</h3>
+                    <p class="text-gray-500 mb-6">Pour les petites équipes</p>
+                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
+                        Gratuit
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Jusqu'à 10 employés
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Pointage de base
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Rapports simples
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-red-500">❌</span> Export Excel
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-red-500">❌</span> Géolocalisation
+                        </li>
+                    </ul>
+                    <button onclick="openRegister('starter')" class="w-full py-3 bg-[#1e3a5f] text-white rounded-lg font-medium hover:bg-blue-900 transition">
+                        Commencer gratuitement
+                    </button>
+                </div>
+
+                <!-- Plan Pro -->
+                <div class="plan-card bg-white rounded-2xl shadow-xl p-8 border-2 border-[#f97316] relative transform scale-105 fade-in">
+                    <span class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#f97316] text-white px-6 py-1 rounded-full text-sm font-bold">
+                        Recommandé
+                    </span>
+                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2 mt-2">Pro</h3>
+                    <p class="text-gray-500 mb-6">Pour les équipes en croissance</p>
+                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
+                        29 000 FCFA<span class="text-lg text-gray-500">/mois</span>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Jusqu'à 50 employés
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Pointage avancé
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Rapports avancés
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Export Excel
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Géolocalisation
+                        </li>
+                    </ul>
+                    <button onclick="openRegister('pro')" class="w-full py-3 bg-[#f97316] text-white rounded-lg font-medium hover:bg-orange-600 transition">
+                        Essai gratuit 14 jours
+                    </button>
+                </div>
+
+                <!-- Plan Enterprise -->
+                <div class="plan-card bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-100 hover:border-[#f97316] transition fade-in">
+                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2">Enterprise</h3>
+                    <p class="text-gray-500 mb-6">Pour les grandes entreprises</p>
+                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
+                        99 000 FCFA<span class="text-lg text-gray-500">/mois</span>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Employés illimités
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Toutes les fonctionnalités
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> API personnalisée
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Support dédié
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-green-500">✅</span> Personnalisation
+                        </li>
+                    </ul>
+                    <button onclick="openRegister('enterprise')" class="w-full py-3 bg-[#1e3a5f] text-white rounded-lg font-medium hover:bg-blue-900 transition">
+                        Nous contacter
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL INSCRIPTION -->
+    <div id="registerModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+            <button onclick="closeRegister()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            
+            <h3 class="text-2xl font-bold text-[#1e3a5f] mb-6">Créez votre compte</h3>
+            
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
+                <!-- Plan sélectionné (caché) -->
+                <input type="hidden" id="planId" name="plan_id" value="">
+                
+                <!-- Nom entreprise -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom de l'entreprise *</label>
+                    <input type="text" id="companyName" name="nom" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
+                           placeholder="ex: SenPlus">
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email professionnel *</label>
+                    <input type="email" id="email" name="email" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
+                           placeholder="ex: contact@senplus.com">
+                    <p id="emailError" class="text-red-500 text-sm mt-1 hidden">Email invalide</p>
+                </div>
+                
+                <!-- Mot de passe -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
+                    <input type="password" id="password" name="password" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
+                           placeholder="Minimum 8 caractères">
+                    
+                    <!-- Indicateurs de force -->
+                    <div class="mt-2 space-y-1 text-sm">
+                        <p id="lengthCheck" class="text-red-500">❌ Minimum 8 caractères</p>
+                        <p id="uppercaseCheck" class="text-red-500">❌ Au moins 1 majuscule</p>
+                        <p id="numberCheck" class="text-red-500">❌ Au moins 1 chiffre</p>
+                        <p id="symbolCheck" class="text-red-500">❌ Au moins 1 symbole (!@#$%^&*)</p>
+                    </div>
+                </div>
+                
+                <!-- Plan affiché -->
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <p class="text-sm text-gray-600">Offre sélectionnée : <span id="selectedPlanName" class="font-bold text-[#1e3a5f]"></span></p>
+                </div>
+                
+                <button type="submit" id="submitBtn"
+                        class="w-full py-3 bg-[#f97316] text-white rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    Créer mon compte
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-[#1e3a5f] text-white py-8 px-4">
+        <div class="max-w-6xl mx-auto text-center">
+            <p class="text-lg font-bold mb-2">⏱️ One Time</p>
+            <p class="text-gray-300">Le pointage simplifié pour votre entreprise</p>
+            <p class="text-gray-400 text-sm mt-4">© 2025 One Time. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="landing.js"></script>
+</body>
+</html>
