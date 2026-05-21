@@ -778,9 +778,8 @@ router.post("/reset-counters", async (req, res, next) => {
     await query("DELETE FROM pointages");
     await query("DELETE FROM absences");
     await query("DELETE FROM sanctions");
-    // Les notifications et décisions RH peuvent être conservées, mais on les vide aussi pour une remise à zéro complète
-    await query("DELETE FROM notifications WHERE type IN ('rappel', 'avertissement', 'sanction')");
-    await query("DELETE FROM decisions_rh");
+    // Les notifications peuvent être filtrées pour ne supprimer que les alertes liées au travail
+    await query("DELETE FROM notifications WHERE type IN ('rappel', 'sanction', 'retard')");
 
     if (actor) {
       await writeAuditLog({
@@ -789,7 +788,7 @@ router.post("/reset-counters", async (req, res, next) => {
         role: actor.role,
         action: "RESET_COUNTERS",
         target: "ALL",
-        details: "Réinitialisation de tous les compteurs (pointages, absences, sanctions, notifications, décisions RH)",
+        details: "Réinitialisation de tous les compteurs (pointages, absences, sanctions, notifications liées)",
         ip: req.ip,
       });
     }
