@@ -116,17 +116,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetCounters = async () => {
-    const confirmReset = window.confirm(
-      '⚠️ ATTENTION : Cette action va effacer TOUS les pointages, absences, sanctions, notifications et décisions RH. Les utilisateurs resteront inchangés. Cette opération est irréversible.\n\nConfirmez-vous la réinitialisation ?'
+  const handleResetCounters = as    const confirmReset = window.confirm(
+      '⚠️ ATTENTION : ACTION IRRÉVERSIBLE\n\nCette opération va SUPPRIMER :\n- Tous les utilisateurs (Employés et Admins)\n- Tous les pointages et absences\n- Tous les logs d\'audit et notifications\n- Toutes les sanctions\n\nSeul votre compte SuperAdmin sera conservé. Confirmez-vous ?'
     );
     if (!confirmReset) return;
 
     try {
       await resetCounters();
-      toast.success('Tous les compteurs ont été remis à zéro');
+      toast.success('Réinitialisation totale effectuée avec succès');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation des compteurs');
+      toast.error(error?.response?.data?.message || 'Erreur lors de la réinitialisation');
     }
   };
 
@@ -430,8 +429,8 @@ export default function SettingsPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         if (file.size > 500 * 1024) {
-                          toast.error('Le fichier ne doit pas dépasser 500KB');
-                          return;
+                           toast.error('Le fichier ne doit pas dépasser 500KB');
+                           return;
                         }
                         const reader = new FileReader();
                         reader.onload = () => {
@@ -470,18 +469,18 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* NOUVELLE ZONE DE DANGER : Réinitialisation des compteurs */}
-        <Card title="⚠️ Zone de danger" className="md:col-span-2 border-red-200 bg-red-50/30">
+        {/* NOUVELLE ZONE DE DANGER : Réinitialisation complète */}
+        <Card title="⚠️ Zone de danger critique" className="md:col-span-2 border-red-200 bg-red-50/30">
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
                 <RotateCcw size={20} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-red-700">Réinitialiser tous les compteurs</p>
+                <p className="text-sm font-bold text-red-700">Réinitialisation totale de l'application</p>
                 <p className="text-xs text-red-600/80 mt-1">
-                  Cette action efface <strong>tous les pointages, absences, sanctions, notifications et décisions RH</strong>. 
-                  Les comptes utilisateurs ne sont pas supprimés. Cette opération est irréversible.
+                  Cette action est <strong>définitive</strong>. Elle va supprimer <strong>TOUS les utilisateurs (sauf vous)</strong>, 
+                  tous les pointages, absences, sanctions et tous les journaux d'audit.
                 </p>
                 <Button 
                   variant="danger" 
@@ -489,7 +488,7 @@ export default function SettingsPage() {
                   onClick={handleResetCounters}
                 >
                   <RotateCcw size={16} />
-                  Réinitialiser les compteurs
+                  Réinitialiser toute l'application
                 </Button>
               </div>
             </div>

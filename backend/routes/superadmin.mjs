@@ -774,26 +774,42 @@ router.get("/export/global", async (_req, res, next) => {
 router.post("/reset-counters", async (req, res, next) => {
   try {
     const actor = await getActor(req);
-    // Supprimer tous les pointages, absences et sanctions
+    const currentUserId = req.auth.sub;
+
+    // 1. Vider les tables de logs et notifications
+    await query("DELETE FROM audit_logs");
+    await query("DELETE FROM notifications");
+    await query("DELETE FROM qr_tokens");
+
+    // 2. Vider les données métier (pointages, sanctions)
     await query("DELETE FROM pointages");
-    await query("DELETE FROM absences");
     await query("DELETE FROM sanctions");
-    // Les notifications peuvent être filtrées pour ne supprimer que les alertes liées au travail
-    await query("DELETE FROM notifications WHERE type IN ('rappel', 'sanction', 'retard')");
+
+    // 3. Vider les absences et justificatifs
+    // Justificatifs d'abord car ils pointent vers absences et employes
+    await query("DELETE FROM justificatifs");
+    await query("DELETE FROM absences");
+
+    // 4. Supprimer tous les comptes SAUF le SuperAdmin actuel
+    await query("DELETE FROM employes WHERE id != $1 AND role != 'superadmin'", [currentUserId]);
+
+    // On pourrait aussi vider les configurations personnalisées si besoin, 
+    // mais on garde les services car le SuperAdmin y est rattaché.
 
     if (actor) {
+      // On recrée un log pour cette action précise après avoir vidé la table
       await writeAuditLog({
-        userId: actor.id,
+        userId: currentUserId,
         userName: actor.name,
         role: actor.role,
-        action: "RESET_COUNTERS",
-        target: "ALL",
-        details: "Réinitialisation de tous les compteurs (pointages, absences, sanctions, notifications liées)",
+        action: "HARD_RESET",
+        target: "SYSTEM",
+        details: "Réinitialisation totale de l'application effectuée",
         ip: req.ip,
       });
     }
 
-    res.json({ success: true, message: "Tous les compteurs ont été réinitialisés." });
+    res.json({ success: true, message: "L'application a été entièrement réinitialisée." });
   } catch (err) {
     next(err);
   }
