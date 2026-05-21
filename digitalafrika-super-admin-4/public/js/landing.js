@@ -148,7 +148,8 @@ async function handleRegister(event) {
     // APPEL API - POST /api/entreprises/register
     // ==========================================
     try {
-        const response = await fetch('/api/entreprises/register', {
+        const apiBase = window.ONTIME_API_URL || '/api';
+        const response = await fetch(`${apiBase}/entreprises/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -166,10 +167,12 @@ async function handleRegister(event) {
         if (response.ok) {
             alert('✅ Entreprise créée avec succès !');
             closeRegister();
-            // Rediriger vers la page de connexion
             window.location.href = '/login';
+        } else if (response.status === 409 || result.code === 'EMAIL_EXISTS') {
+            const emailError = document.getElementById('emailError');
+            emailError.textContent = result.message || 'Cet email est déjà utilisé. Veuillez choisir un autre email.';
+            emailError.classList.remove('hidden');
         } else {
-            // Afficher l'erreur renvoyée par le backend
             alert('❌ ' + (result.message || 'Erreur lors de l\'inscription'));
         }
         

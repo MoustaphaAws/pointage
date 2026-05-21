@@ -20,6 +20,7 @@ import sanctionsRoutes from "./routes/sanctions.mjs";
 import statsRoutes from "./routes/stats.mjs";
 import exportsRoutes from "./routes/exports.mjs";
 import superadminRoutes from "./routes/superadmin.mjs";
+import entreprisesRoutes, { plansRouter } from "./routes/entreprises.mjs";
 import { initCronJobs } from "./jobs/cron.mjs";
 
 const app = express();
@@ -78,6 +79,17 @@ app.get("/api/health", (_req, res) => {
 
 // Auth (avec rate limit)
 app.use("/api/auth", authLimiter, authRoutes);
+
+// Inscription multi-entreprises (public)
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { message: "Trop de tentatives d'inscription. Réessayez plus tard." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/plans", plansRouter);
+app.use("/api/entreprises", registerLimiter, entreprisesRoutes);
 
 // Routes protégées par JWT
 app.use("/api/profile", requireAuth, profileRoutes);

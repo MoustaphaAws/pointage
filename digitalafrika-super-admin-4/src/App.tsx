@@ -8,6 +8,7 @@ import SettingsPage from './pages/Settings';
 import AuditLogsPage from './pages/Logs';
 import ReportsPage from './pages/Reports';
 import EmployeeDetailsPage from './pages/EmployeeDetails';
+import Landing from './pages/Landing';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 export default function App() {
@@ -19,8 +20,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={canAccess ? <Navigate to="/dashboard" replace /> : <Login />} />
-        
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        <Route
+          path="/"
+          element={canAccess ? <Navigate to="/dashboard" replace /> : <Landing />}
+        />
         
         <Route
           path="/dashboard"

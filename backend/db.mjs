@@ -1,5 +1,10 @@
 import pg from "pg";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
 const { Pool } = pg;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL })
@@ -22,6 +27,13 @@ export async function runMigrations() {
     ALTER TABLE audit_logs
     ADD COLUMN IF NOT EXISTS entite_id UUID
   `);
+
+  const multiTenantSql = readFileSync(
+    join(__dirname, "migrations", "multi_tenant.sql"),
+    "utf8"
+  );
+  await query(multiTenantSql);
+
   console.log("✅ Migrations OK");
 }
 
