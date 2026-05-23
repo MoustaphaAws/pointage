@@ -132,3 +132,38 @@ INSERT INTO plans (nom, slug, prix, max_employes, fonctionnalites) VALUES
 ('Pro', 'pro', 29000, 50, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true}'::jsonb),
 ('Enterprise', 'enterprise', 99000, -1, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true, "api": true, "support_dedie": true, "personnalisation": true}'::jsonb)
 ON CONFLICT (slug) DO NOTHING;
+
+psql -U postgres -d digitalafrika << 'EOF'
+-- Créer la table services
+CREATE TABLE IF NOT EXISTS services (
+  id SERIAL PRIMARY KEY,
+  nom VARCHAR(120) UNIQUE NOT NULL,
+  actif BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Insérer des services par défaut
+INSERT INTO services (nom) VALUES
+  ('Direction'),
+  ('Commercial'),
+  ('Administratif'),
+  ('Logistique'),
+  ('IT'),
+  ('RH')
+ON CONFLICT (nom) DO NOTHING;
+
+-- Ajouter la colonne matricule si elle n'existe pas
+ALTER TABLE employes ADD COLUMN IF NOT EXISTS matricule VARCHAR(50);
+
+-- Créer la table notifications
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  employe_id INTEGER REFERENCES employes(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL,
+  titre VARCHAR(200) NOT NULL,
+  message TEXT,
+  lu BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+EOF

@@ -20,7 +20,12 @@ import { User } from '../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 // FIX: API_BASE as env variable with fallback
-const API_BASE = 'https://digitalafrika-super-admin-4.onrender.com/api';
+// Pour le développement local :
+//const API_BASE = 'http://localhost:3001/api';
+
+// Pour la production (Render) :
+const API_BASE = 'https://pointage-ufj2.onrender.com/api';
+
 
 type Plan = {
   id: number;
@@ -1048,22 +1053,20 @@ function BackgroundVideoSection() {
   );
 }
 
-// ── Qualification Modal ────────────────────────────────────────────────────────
-function QualificationModal({ onComplete, onClose }: {
-  onComplete: (data: Record<string, string>) => void;
-  onClose: () => void;
-}) {
+
+// ── Qualification Modal (3 questions avec champ "Autre" et bouton Passer) ─────
+function QualificationModal({ onComplete, onClose }: { onComplete: (data: Record<string, string>) => void; onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [animateOut, setAnimateOut] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
-
+  
   const questions = [
     {
       id: 'source',
-      question: 'Comment avez-vous connu One Time ?',
-      subtitle: 'Cela nous aide à mieux comprendre votre parcours',
+      question: "Comment avez-vous connu One Time ?",
+      subtitle: "Cela nous aide à mieux comprendre votre parcours",
       icon: Search,
       options: [
         { label: 'Recherche Google', value: 'google', icon: Globe },
@@ -1076,7 +1079,7 @@ function QualificationModal({ onComplete, onClose }: {
     {
       id: 'poste',
       question: "Quel est votre poste ou domaine d'activité ?",
-      subtitle: 'Pour adapter nos fonctionnalités à votre profil',
+      subtitle: "Pour adapter nos fonctionnalités à votre profil",
       icon: Briefcase,
       options: [
         { label: 'RH / Gestion du personnel', value: 'rh', icon: Users },
@@ -1088,7 +1091,7 @@ function QualificationModal({ onComplete, onClose }: {
     },
     {
       id: 'frequence',
-      question: 'À quelle fréquence pensez-vous utiliser One Time ?',
+      question: "À quelle fréquence pensez-vous utiliser One Time ?",
       subtitle: "Pour vous offrir l'expérience la plus adaptée",
       icon: Clock3,
       options: [
@@ -1101,59 +1104,40 @@ function QualificationModal({ onComplete, onClose }: {
     },
   ];
 
-  type Option = typeof questions[0]['options'][0];
-
-  const handleOptionSelect = (option: Option) => {
-    if ('isCustom' in option && option.isCustom) {
-      setShowCustomInput(true);
-      return;
-    }
+  const handleOptionSelect = (option: typeof questions[0]['options'][0]) => {
+    if (option.isCustom) { setShowCustomInput(true); return; }
     proceedWithAnswer(option.value);
   };
 
   const handleCustomSubmit = () => {
-    if (customInput.trim()) {
-      proceedWithAnswer(customInput.trim());
-      setCustomInput('');
-      setShowCustomInput(false);
-    }
+    if (customInput.trim()) { proceedWithAnswer(customInput.trim()); setCustomInput(''); setShowCustomInput(false); }
   };
 
-  const handleCustomKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && customInput.trim()) handleCustomSubmit();
+  const handleCustomKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && customInput.trim()) handleCustomSubmit(); };
+
+  const handleSkip = () => {
+    proceedWithAnswer('');
   };
 
   const proceedWithAnswer = (value: string) => {
     setAnimateOut(true);
     setTimeout(() => {
-      const newAnswers = { ...answers, [questions[step].id]: value };
-      setAnswers(newAnswers);
-      if (step < questions.length - 1) {
-        setStep(prev => prev + 1);
-      } else {
-        onComplete(newAnswers);
-      }
+      setAnswers(prev => ({ ...prev, [questions[step].id]: value }));
+      if (step < questions.length - 1) { setStep(prev => prev + 1); } else { onComplete({ ...answers, [questions[step].id]: value }); }
       setAnimateOut(false);
     }, 300);
   };
 
   const handleBack = () => {
     if (showCustomInput) { setShowCustomInput(false); setCustomInput(''); return; }
-    if (step > 0) {
-      setAnimateOut(true);
-      setTimeout(() => { setStep(prev => prev - 1); setAnimateOut(false); }, 300);
-    }
+    if (step > 0) { setAnimateOut(true); setTimeout(() => { setStep(prev => prev - 1); setAnimateOut(false); }, 300); }
   };
 
   const CurrentIcon = questions[step].icon;
   const progressPercent = ((step + 1) / questions.length) * 100;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(3,15,36,0.75)', backdropFilter: 'blur(12px)' }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(3,15,36,0.75)', backdropFilter: 'blur(12px)' }} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden" style={{ animation: 'modalIn .3s ease' }}>
         <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0c2d5e 0%, #0b3d7b 30%, #094e8a 60%, #085c96 100%)' }}>
           <div className="absolute inset-0 opacity-10">
@@ -1163,107 +1147,75 @@ function QualificationModal({ onComplete, onClose }: {
           <div className="relative z-10 px-8 py-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                  <Clock size={20} className="text-white" />
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm"><Clock size={20} className="text-white" /></div>
                 <span className="font-bold text-xl text-white">One Time</span>
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Fermer"
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition text-white/80"
-              >
-                <X size={16} />
-              </button>
+              <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 transition text-white/80"><X size={16} /></button>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                <CurrentIcon size={22} className="text-sky-300" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-white">{questions[step].question}</h3>
-                <p className="text-sky-200/80 text-sm">{questions[step].subtitle}</p>
-              </div>
+              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center backdrop-blur-sm"><CurrentIcon size={22} className="text-sky-300" /></div>
+              <div><h3 className="text-xl font-black text-white">{questions[step].question}</h3><p className="text-sky-200/80 text-sm">{questions[step].subtitle}</p></div>
             </div>
             <div className="flex items-center gap-3 mt-5">
               <span className="text-xs text-sky-200/60 font-medium">Question {step + 1}/{questions.length}</span>
-              <div className="flex-1 h-1.5 rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressPercent}%`, background: 'linear-gradient(90deg, #38bdf8, #0ea5e9)' }}
-                />
-              </div>
+              <div className="flex-1 h-1.5 rounded-full bg-white/10"><div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progressPercent}%`, background: 'linear-gradient(90deg, #38bdf8, #0ea5e9)' }} /></div>
               <span className="text-xs text-sky-200/60 font-medium">{Math.round(progressPercent)}%</span>
             </div>
           </div>
         </div>
         <div className="p-8">
           {(step > 0 || showCustomInput) && (
-            <button onClick={handleBack} className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-sky-600 transition">
-              <ArrowLeft size={14} />Retour
-            </button>
+            <button onClick={handleBack} className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-sky-600 transition"><ArrowLeft size={14} />Retour</button>
           )}
           <div style={{ opacity: animateOut ? 0 : 1, transform: animateOut ? 'translateX(-20px)' : 'translateX(0)', transition: 'all .3s ease' }}>
             {showCustomInput ? (
               <div className="space-y-4" style={{ animation: 'fadeInUp .3s ease' }}>
                 <div className="p-4 rounded-2xl bg-sky-50 border-2 border-sky-200">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
-                      <Edit3 size={18} className="text-sky-600" />
-                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0 mt-0.5"><Edit3 size={18} className="text-sky-600" /></div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-sky-900 mb-1">Votre réponse personnalisée</p>
                       <p className="text-xs text-sky-600 mb-3">Écrivez votre réponse ci-dessous</p>
                       <div className="relative">
-                        <input
-                          type="text"
-                          value={customInput}
-                          onChange={e => setCustomInput(e.target.value)}
-                          onKeyDown={handleCustomKeyDown}
-                          placeholder="Votre réponse..."
-                          className="w-full px-4 py-3 pr-12 border-2 border-sky-200 rounded-xl text-sm focus:outline-none focus:border-sky-400 transition-all bg-white"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleCustomSubmit}
-                          disabled={!customInput.trim()}
-                          aria-label="Envoyer"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center hover:bg-sky-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Send size={14} />
-                        </button>
+                        <input type="text" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={handleCustomKeyDown}
+                          placeholder="Votre réponse..." className="w-full px-4 py-3 pr-12 border-2 border-sky-200 rounded-xl text-sm focus:outline-none focus:border-sky-400 transition-all bg-white" autoFocus />
+                        <button onClick={handleCustomSubmit} disabled={!customInput.trim()}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center hover:bg-sky-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"><Send size={14} /></button>
                       </div>
                     </div>
                   </div>
                 </div>
+                {/* Bouton Passer dans le champ personnalisé */}
+                <button onClick={handleSkip} className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition py-2">
+                  Passer cette question →
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
                 {questions[step].options.map((option, index) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleOptionSelect(option)}
+                  <button key={option.value} onClick={() => handleOptionSelect(option)}
                     className="w-full text-left px-5 py-4 rounded-2xl border-2 border-gray-100 hover:border-sky-300 hover:bg-sky-50/50 transition-all duration-200 group flex items-center justify-between"
-                    style={{ animation: `fadeInUp .4s ease ${index * 0.05}s both` }}
-                  >
+                    style={{ animation: `fadeInUp .4s ease ${index * 0.05}s both` }}>
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${'isCustom' in option && option.isCustom ? 'bg-orange-50 group-hover:bg-orange-100' : 'bg-gray-50 group-hover:bg-sky-100'}`}>
-                        <option.icon size={18} className={`transition ${'isCustom' in option && option.isCustom ? 'text-orange-500 group-hover:text-orange-600' : 'text-gray-400 group-hover:text-sky-600'}`} />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${option.isCustom ? 'bg-orange-50 group-hover:bg-orange-100' : 'bg-gray-50 group-hover:bg-sky-100'}`}>
+                        <option.icon size={18} className={`transition ${option.isCustom ? 'text-orange-500 group-hover:text-orange-600' : 'text-gray-400 group-hover:text-sky-600'}`} />
                       </div>
-                      <span className={`font-semibold transition ${'isCustom' in option && option.isCustom ? 'text-orange-600 group-hover:text-orange-700' : 'text-gray-700 group-hover:text-sky-700'}`}>
-                        {option.label}
-                      </span>
+                      <span className={`font-semibold transition ${option.isCustom ? 'text-orange-600 group-hover:text-orange-700' : 'text-gray-700 group-hover:text-sky-700'}`}>{option.label}</span>
                     </div>
-                    {'isCustom' in option && option.isCustom ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-orange-500 font-medium">Écrire</span>
-                        <Edit3 size={16} className="text-orange-400 group-hover:text-orange-500 transition-transform group-hover:scale-110" />
-                      </div>
+                    {option.isCustom ? (
+                      <div className="flex items-center gap-2"><span className="text-xs text-orange-500 font-medium">Écrire</span><Edit3 size={16} className="text-orange-400 group-hover:text-orange-500 transition-transform group-hover:scale-110" /></div>
                     ) : (
                       <ChevronRight size={18} className="text-gray-300 group-hover:text-sky-500 transition-transform group-hover:translate-x-1" />
                     )}
                   </button>
                 ))}
+                
+                {/* Bouton Passer */}
+                <button onClick={handleSkip} 
+                  className="w-full text-center text-sm text-gray-400 hover:text-gray-500 transition py-3 mt-2 hover:bg-gray-50 rounded-xl"
+                  style={{ animation: 'fadeInUp .4s ease 0.3s both' }}>
+                  Passer cette question →
+                </button>
               </div>
             )}
           </div>

@@ -32,18 +32,19 @@ export function Navbar() {
   const roleLabel = user?.role === 'superadmin' ? 'Super Admin' : 'Administrateur';
 
   return (
-    <header className="bg-stone-900 text-stone-300 w-full fixed top-0 left-0 z-50 border-b border-stone-800">
+    <header className="text-white w-full fixed top-0 left-0 z-50 border-b border-sky-700" 
+      style={{ background: 'linear-gradient(135deg, #0c2d5e 0%, #0b3d7b 30%, #094e8a 60%, #085c96 100%)' }}>
       <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center">
         <div className="flex-shrink-0 min-w-[200px] max-w-[280px]">
           <Link to="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-lg bg-stone-700 border border-stone-600 flex items-center justify-center text-xs font-bold text-stone-100 uppercase tracking-wide shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center text-xs font-bold text-white uppercase tracking-wide shrink-0">
               {brandName.slice(0, 2)}
             </div>
             <div className="min-w-0">
-              <h1 className="text-white font-semibold text-base truncate leading-tight group-hover:text-stone-100 transition">
+              <h1 className="text-white font-semibold text-base truncate leading-tight group-hover:text-sky-200 transition">
                 {brandName}
               </h1>
-              <p className="text-[10px] text-stone-500 uppercase tracking-wider truncate">
+              <p className="text-[10px] text-sky-200/70 uppercase tracking-wider truncate">
                 {roleLabel}
               </p>
             </div>
@@ -59,8 +60,8 @@ export function Navbar() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 text-[13px] font-medium transition-all rounded-lg hover:text-white hover:bg-stone-800',
-                  isActive ? 'text-stone-100 bg-stone-800' : 'text-stone-400'
+                  'flex items-center gap-2 px-4 py-2 text-[13px] font-medium transition-all rounded-lg hover:text-white hover:bg-white/10',
+                  isActive ? 'text-white bg-white/15' : 'text-sky-100/70'
                 )}
               >
                 <Icon size={16} />
@@ -75,9 +76,9 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-stone-800 transition-colors border border-transparent hover:border-stone-700"
+              className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/10 transition-colors border border-transparent hover:border-white/20"
             >
-              <div className="w-8 h-8 rounded-lg bg-stone-700 flex items-center justify-center text-xs font-bold text-stone-200 uppercase">
+              <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center text-xs font-bold text-white uppercase">
                 {user?.firstName?.[0]}
                 {user?.lastName?.[0]}
               </div>
@@ -85,26 +86,27 @@ export function Navbar() {
                 <p className="text-xs text-white font-medium truncate leading-none">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-[10px] text-stone-500 mt-1">{user?.email}</p>
+                <p className="text-[10px] text-sky-200/70 mt-1">{user?.email}</p>
               </div>
               <ChevronDown
                 size={14}
-                className={cn('text-stone-500 transition-transform', isUserMenuOpen && 'rotate-180')}
+                className={cn('text-sky-200/70 transition-transform', isUserMenuOpen && 'rotate-180')}
               />
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-stone-900 border border-stone-700 rounded-xl shadow-xl p-2">
-                <div className="px-3 py-2 border-b border-stone-800 mb-2">
-                  <p className="text-[10px] font-medium text-stone-500 uppercase tracking-wider">
+              <div className="absolute right-0 mt-2 w-52 rounded-xl shadow-xl p-2 border border-sky-700" 
+                style={{ background: 'linear-gradient(135deg, #0c2d5e 0%, #094e8a 100%)' }}>
+                <div className="px-3 py-2 border-b border-sky-700/50 mb-2">
+                  <p className="text-[10px] font-medium text-sky-200/50 uppercase tracking-wider">
                     Compte
                   </p>
-                  <p className="text-xs text-stone-300 truncate mt-1">{user?.email}</p>
+                  <p className="text-xs text-sky-100 truncate mt-1">{user?.email}</p>
                 </div>
                 <button
                   type="button"
                   onClick={logout}
-                  className="flex items-center gap-3 px-3 py-2 w-full text-xs font-medium text-stone-400 hover:bg-stone-800 hover:text-stone-200 transition-colors rounded-lg"
+                  className="flex items-center gap-3 px-3 py-2 w-full text-xs font-medium text-sky-100/70 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
                 >
                   <LogOut size={14} />
                   Déconnexion
