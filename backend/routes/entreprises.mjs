@@ -136,8 +136,7 @@ router.post("/register", async (req, res, next) => {
       );
     }
 
-    const matResult = await client.query("SELECT generate_matricule() AS mat");
-    const matricule = matResult.rows[0].mat;
+        const matricule = 'EMP-' + Date.now();
 
     const adminResult = await client.query(
       `INSERT INTO employes (
