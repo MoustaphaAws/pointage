@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { query } from "../db.mjs";
-import { requireSuperAdmin } from "../middleware/auth.mjs";
+import { requireAdmin, requireSuperAdmin } from "../middleware/auth.mjs";
 import { writeAuditLog, getActor } from "../utils/audit.mjs";
 import { formatTimeHHMM } from "../utils/formatDbTime.mjs";
 
@@ -77,7 +77,19 @@ async function resolveUserName(userId) {
 }
 
 const router = Router();
-router.use(requireSuperAdmin);
+router.use(requireAdmin);
+
+async function getEntrepriseScope(req) {
+  if (req.auth.role === "superadmin") return null;
+  const r = await query("SELECT entreprise_id FROM employes WHERE id = $1", [req.auth.sub]);
+  return r.rows[0]?.entreprise_id ?? null;
+}
+
+function scopeClause(alias, entrepriseId, params) {
+  if (!entrepriseId) return "";
+  params.push(entrepriseId);
+  return ` AND ${alias}.entreprise_id = $${params.length}`;
+}
 
 // ═══════════════════════════════════════════════
 // PROFIL SUPERADMIN
@@ -88,16 +100,19 @@ router.get("/me", async (req, res, next) => {
     const result = await query(
       `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
               COALESCE(s.nom, '') AS service, e.poste, e.actif AS active,
-              e.uid_badge AS badge_uid, e.created_at
+              e.uid_badge AS badge_uid, e.created_at, e.entreprise_id,
+              ent.nom AS entreprise_nom
        FROM employes e
        LEFT JOIN services s ON s.id = e.service_id
+       LEFT JOIN entreprises ent ON ent.id = e.entreprise_id
        WHERE e.id = $1`,
       [req.auth.sub]
     );
-    if (!result.rowCount) return res.status(404).json({ message: "Profil SuperAdmin introuvable." });
+    if (!result.rowCount) return res.status(404).json({ message: "Profil introuvable." });
     const u = result.rows[0];
     res.json({
       id: String(u.id), firstName: u.first_name, lastName: u.last_name,
+      companyName: u.entreprise_nom || null,
       email: u.email, role: u.role, service: u.service, poste: u.poste || "",
       active: u.active, badgeUid: u.badge_uid || "-", createdAt: u.created_at,
     });
@@ -145,16 +160,20 @@ router.put("/me", async (req, res, next) => {
 // GESTION UTILISATEURS
 // ═══════════════════════════════════════════════
 
-router.get("/admins", async (_req, res, next) => {
+router.get("/admins", async (req, res, next) => {
   try {
+    const entrepriseId = await getEntrepriseScope(req);
+    const params = [];
+    const escope = scopeClause("e", entrepriseId, params);
     const result = await query(
       `SELECT e.id, e.first_name, e.last_name, e.email, e.role,
               s.nom AS service, e.poste, e.actif AS active,
               e.uid_badge AS badge_uid, e.admin_permissions, e.created_at
        FROM employes e
        JOIN services s ON s.id = e.service_id
-       WHERE e.role IN ('employee', 'admin')
-       ORDER BY e.created_at DESC`
+       WHERE e.role IN ('employee', 'admin')${escope}
+       ORDER BY e.created_at DESC`,
+      params
     );
     res.json(result.rows.map((r) => ({
       id: String(r.id), firstName: r.first_name, lastName: r.last_name,
@@ -179,11 +198,12 @@ router.post("/admins", async (req, res, next) => {
     const hash = await bcrypt.hash(password, 10);
     const matResult = await query("SELECT generate_matricule() AS mat");
     const matricule = matResult.rows[0].mat;
+    const entrepriseId = await getEntrepriseScope(req);
     const insert = await query(
-      `INSERT INTO employes (matricule, first_name, last_name, email, password_hash, role, service_id, poste, uid_badge, actif, admin_permissions, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true,$10::jsonb,$11)
+      `INSERT INTO employes (matricule, first_name, last_name, email, password_hash, role, service_id, poste, uid_badge, actif, admin_permissions, created_by, entreprise_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true,$10::jsonb,$11,$12)
        RETURNING id, first_name, last_name, email, role, poste, actif, uid_badge, admin_permissions, created_at`,
-      [matricule, firstName, lastName, String(email).toLowerCase(), hash, safeRole, serviceId, poste || null, badgeUid || null, JSON.stringify(permissionsPayload), req.auth.sub]
+      [matricule, firstName, lastName, String(email).toLowerCase(), hash, safeRole, serviceId, poste || null, badgeUid || null, JSON.stringify(permissionsPayload), req.auth.sub, entrepriseId]
     );
     const created = insert.rows[0];
     await query(
@@ -425,13 +445,37 @@ router.get("/employees/:id", async (req, res, next) => {
 // STATS GLOBALES
 // ═══════════════════════════════════════════════
 
-router.get("/stats/global", async (_req, res, next) => {
+router.get("/stats/global", async (req, res, next) => {
   try {
+    const entrepriseId = await getEntrepriseScope(req);
+    const ep = [];
+    const ea = [];
+    const escope = scopeClause("e", entrepriseId, ep);
+    const ascope = entrepriseId
+      ? ` AND a.employe_id IN (SELECT id FROM employes e WHERE e.entreprise_id = $1)`
+      : "";
+    if (entrepriseId) {
+      ep.push(entrepriseId);
+      ea.push(entrepriseId);
+    }
+
     const [employees, admins, activeUsers, pendingAbsences] = await Promise.all([
-      query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'employee'"),
-      query("SELECT COUNT(*)::int AS total FROM employes WHERE role = 'admin'"),
-      query("SELECT COUNT(*)::int AS total FROM employes WHERE actif = true AND role != 'superadmin'"),
-      query("SELECT COUNT(*)::int AS total FROM absences WHERE statut = 'en_attente'"),
+      query(
+        `SELECT COUNT(*)::int AS total FROM employes e WHERE role = 'employee'${escope}`,
+        ep
+      ),
+      query(
+        `SELECT COUNT(*)::int AS total FROM employes e WHERE role = 'admin'${escope}`,
+        ep
+      ),
+      query(
+        `SELECT COUNT(*)::int AS total FROM employes e WHERE actif = true AND role != 'superadmin'${escope}`,
+        ep
+      ),
+      query(
+        `SELECT COUNT(*)::int AS total FROM absences a WHERE statut = 'en_attente'${ascope}`,
+        ea
+      ),
     ]);
     res.json({
       employees: employees.rows[0].total, admins: admins.rows[0].total,
@@ -559,15 +603,21 @@ router.put("/rh-absences/:id/override", async (req, res, next) => {
 // ACTIVITY (activité récente)
 // ═══════════════════════════════════════════════
 
-router.get("/activity", async (_req, res, next) => {
+router.get("/activity", async (req, res, next) => {
   try {
-    // audit_logs : colonnes réelles = user_id, user_role, action, entite, entite_id, details, ip_address
+    const entrepriseId = await getEntrepriseScope(req);
+    const params = [];
+    const filter = entrepriseId ? `WHERE e.entreprise_id = $1` : "";
+    if (entrepriseId) params.push(entrepriseId);
+
     const rows = await query(
       `SELECT al.id, al.created_at, al.action, al.entite, al.details,
               al.user_role, e.first_name||' '||e.last_name AS user_name
        FROM audit_logs al
        LEFT JOIN employes e ON e.id = al.user_id
-       ORDER BY al.created_at DESC LIMIT 20`
+       ${filter}
+       ORDER BY al.created_at DESC LIMIT 20`,
+      params
     );
     res.json(rows.rows.map((row) => ({
       id: String(row.id),

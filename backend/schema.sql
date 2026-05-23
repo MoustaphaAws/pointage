@@ -376,9 +376,9 @@ CREATE TABLE IF NOT EXISTS plans (
 );
 
 INSERT INTO plans (nom, slug, prix, max_employes, fonctionnalites) VALUES
-    ('Starter', 'starter', 0, 10, '{"pointage_base": true, "rapports_simples": true, "export_excel": false, "geolocalisation": false}'::jsonb),
-    ('Pro', 'pro', 29000, 50, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true}'::jsonb),
-    ('Enterprise', 'enterprise', 99000, -1, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "geolocalisation": true, "api": true, "support_dedie": true, "personnalisation": true}'::jsonb)
+    ('Starter', 'starter', 0, 10, '{"pointage_base": true, "rapports_simples": true, "export_excel": false}'::jsonb),
+    ('Pro', 'pro', 29000, 50, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true}'::jsonb),
+    ('Enterprise', 'enterprise', 99000, -1, '{"pointage_avance": true, "rapports_avances": true, "export_excel": true, "api": true, "support_dedie": true, "personnalisation": true}'::jsonb)
 ON CONFLICT (slug) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS entreprises (

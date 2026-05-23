@@ -2,7 +2,12 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { query } from "../db.mjs";
-import { signToken, signTokenForRole, requireAuth } from "../middleware/auth.mjs";
+import { requireAuth } from "../middleware/auth.mjs";
+import {
+  authPayloadFromRow,
+  AUTH_USER_JOINS,
+  AUTH_USER_SELECT,
+} from "../utils/authUser.mjs";
 
 const router = Router();
 
@@ -15,9 +20,8 @@ router.post("/login", async (req, res, next) => {
     }
 
     const result = await query(
-      `SELECT e.*, s.nom AS service_name
-       FROM employes e
-       JOIN services s ON s.id = e.service_id
+      `SELECT ${AUTH_USER_SELECT}
+       ${AUTH_USER_JOINS}
        WHERE LOWER(e.email) = $1 AND e.actif = true
        LIMIT 1`,
       [String(email).toLowerCase()]
@@ -43,32 +47,7 @@ router.post("/login", async (req, res, next) => {
       return res.status(401).json({ message: "Identifiants invalides." });
     }
 
-    const token = signTokenForRole(user);
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        matricule: user.matricule,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        email: user.email,
-        phone: user.phone,
-        photoUrl: user.photo_url,
-        role: user.role,
-        serviceId: user.service_id,
-        serviceName: user.service_name,
-        poste: user.poste,
-        typeContrat: user.type_contrat,
-        heureDebut: user.heure_debut?.slice(0, 5),
-        heureFin: user.heure_fin?.slice(0, 5),
-        dateEmbauche: user.date_embauche,
-        dateFinContrat: user.date_fin_contrat,
-        actif: user.actif,
-        firstLogin: user.first_login,
-        adminPermissions: user.role === 'admin' ? (user.admin_permissions || {}) : undefined,
-      },
-    });
+    res.json(authPayloadFromRow(user));
   } catch (err) {
     next(err);
   }

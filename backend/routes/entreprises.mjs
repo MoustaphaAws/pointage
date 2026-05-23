@@ -2,6 +2,11 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { query } from "../db.mjs";
 import pool from "../db.mjs";
+import {
+  authPayloadFromRow,
+  AUTH_USER_JOINS,
+  AUTH_USER_SELECT,
+} from "../utils/authUser.mjs";
 
 const router = Router();
 export const plansRouter = Router();
@@ -155,10 +160,17 @@ router.post("/register", async (req, res, next) => {
 
     await client.query("COMMIT");
 
+    const userResult = await query(
+      `SELECT ${AUTH_USER_SELECT} ${AUTH_USER_JOINS} WHERE e.id = $1`,
+      [adminResult.rows[0].id]
+    );
+    const authData = authPayloadFromRow(userResult.rows[0]);
+
     console.log(`✅ Entreprise inscrite : ${entreprise.nom} (${entreprise.email})`);
 
     res.status(201).json({
-      message: "Entreprise créée avec succès ! Vous pouvez vous connecter avec votre email.",
+      message: "Entreprise créée avec succès !",
+      ...authData,
       entreprise: {
         id: entreprise.id,
         nom: entreprise.nom,
@@ -169,11 +181,6 @@ router.post("/register", async (req, res, next) => {
         subscriptionStatus: entreprise.subscription_status,
         trialEndsAt: entreprise.trial_ends_at,
         createdAt: entreprise.created_at,
-      },
-      admin: {
-        id: adminResult.rows[0].id,
-        matricule: adminResult.rows[0].matricule,
-        email: adminResult.rows[0].email,
       },
     });
   } catch (err) {
