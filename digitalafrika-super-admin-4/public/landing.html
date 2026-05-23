@@ -3,229 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OnTime - Le pointage simplifié</title>
+    <title>OnTime - Le pointage nouvelle génération</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/landing.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-50">
-    
-    <!-- NAVBAR -->
-    <nav class="bg-white shadow-md fixed w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-            <!-- Logo -->
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">⏱️</span>
-                <span class="text-2xl font-bold text-[#1e3a5f]">OnTime</span>
-            </div>
+<body class="bg-white">
+
+    <!-- ========== NAVBAR ========== -->
+    <nav class="fixed w-full z-50 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center h-20">
             
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-gradient-to-br from-[#0052CC] to-[#0040A0] rounded-2xl flex items-center justify-center shadow-lg shadow-[#0052CC]/30">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <span class="text-2xl font-black text-[#1A1A2E] tracking-tight">OnTime</span>
+            </div>
+
+            <!-- Navigation -->
+            <div class="hidden lg:flex items-center gap-10">
+                <a href="#features" class="nav-link text-[#555] hover:text-[#0052CC] font-medium text-sm tracking-wide transition">Fonctionnalités</a>
+                <a href="#how-it-works" class="nav-link text-[#555] hover:text-[#0052CC] font-medium text-sm tracking-wide transition">Démo</a>
+                <a href="#testimonials" class="nav-link text-[#555] hover:text-[#0052CC] font-medium text-sm tracking-wide transition">Témoignages</a>
+                <a href="#plans" class="nav-link text-[#555] hover:text-[#0052CC] font-medium text-sm tracking-wide transition">Tarifs</a>
+            </div>
+
             <!-- Boutons -->
-            <div class="flex gap-3">
-                <button onclick="openLogin()" class="px-4 py-2 border-2 border-[#1e3a5f] text-[#1e3a5f] rounded-lg font-medium hover:bg-[#1e3a5f] hover:text-white transition">
+            <div class="flex items-center gap-3">
+                <button onclick="openLogin()" class="btn-outline hidden sm:inline-flex px-5 py-2.5 text-sm font-semibold">
                     Se connecter
                 </button>
-                <button onclick="scrollToPlans()" class="px-4 py-2 bg-[#f97316] text-white rounded-lg font-medium hover:bg-orange-600 transition">
+                <button onclick="scrollToPlans()" class="btn-primary px-6 py-2.5 text-sm font-semibold">
                     Essai gratuit
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <section class="pt-32 pb-20 px-4">
-        <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-5xl md:text-6xl font-bold text-[#1e3a5f] mb-6 fade-in">
-                Le pointage simplifié<br>pour votre entreprise
+    <!-- ========== HERO ========== -->
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        <!-- Background orbs -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+
+        <!-- Grid pattern -->
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDUyQ0MiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMS41Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-50"></div>
+
+        <div class="max-w-6xl mx-auto px-6 text-center relative z-10 py-20">
+            <!-- Badge -->
+            <div class="badge-pill mx-auto mb-10 reveal">
+                <span class="badge-dot"></span>
+                <span>🚀 Nouveau : Géolocalisation intelligente</span>
+            </div>
+
+            <!-- Titre -->
+            <h1 class="hero-title reveal">
+                Le pointage<br>
+                <span class="gradient-text">nouvelle génération</span>
             </h1>
-            <p class="text-xl text-gray-600 mb-10 fade-in">
-                Gérez les présences de vos employés en toute simplicité.<br>Une solution adaptée à toutes les entreprises.
+
+            <!-- Sous-titre -->
+            <p class="hero-subtitle reveal">
+                Gérez les présences de votre entreprise avec une solution moderne,<br class="hidden md:block">
+                intuitive et sécurisée. QR code, géolocalisation, rapports en temps réel.
             </p>
-            <div class="flex justify-center gap-4 fade-in">
-                <button onclick="scrollToPlans()" class="px-8 py-4 bg-[#f97316] text-white text-lg rounded-xl font-semibold hover:bg-orange-600 transition shadow-lg">
-                    Démarrer maintenant
+
+            <!-- CTA -->
+            <div class="flex flex-col sm:flex-row justify-center gap-4 reveal">
+                <button onclick="scrollToPlans()" class="btn-primary-lg group">
+                    Démarrer gratuitement
+                    <span class="group-hover:translate-x-1 transition-transform inline-block">→</span>
                 </button>
-                <button onclick="scrollToPlans()" class="px-8 py-4 border-2 border-[#1e3a5f] text-[#1e3a5f] text-lg rounded-xl font-semibold hover:bg-[#1e3a5f] hover:text-white transition">
-                    Voir les offres
+                <button onclick="scrollToFeatures()" class="btn-secondary-lg">
+                    <span class="mr-2">▶</span> Voir la démo
                 </button>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid reveal">
+                <div class="stat-item">
+                    <div class="stat-number">500<span class="text-[#0052CC]">+</span></div>
+                    <div class="stat-label">Entreprises clientes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50K<span class="text-[#0052CC]">+</span></div>
+                    <div class="stat-label">Employés gérés</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">99<span class="text-[#0052CC]">.9%</span></div>
+                    <div class="stat-label">Disponibilité</div>
+                </div>
+            </div>
+
+            <!-- App preview mockup -->
+            <div class="mockup-container reveal">
+                <div class="mockup">
+                    <div class="mockup-screen">
+                        <div class="mockup-dot red"></div>
+                        <div class="mockup-dot yellow"></div>
+                        <div class="mockup-dot green"></div>
+                        <div class="mockup-content">
+                            <div class="mockup-sidebar">
+                                <div class="mockup-avatar"></div>
+                                <div class="mockup-menu-item"></div>
+                                <div class="mockup-menu-item short"></div>
+                                <div class="mockup-menu-item"></div>
+                            </div>
+                            <div class="mockup-main">
+                                <div class="mockup-card">
+                                    <div class="mockup-card-header"></div>
+                                    <div class="mockup-card-body">
+                                        <div class="mockup-line"></div>
+                                        <div class="mockup-line short"></div>
+                                        <div class="mockup-line"></div>
+                                    </div>
+                                </div>
+                                <div class="mockup-card small">
+                                    <div class="mockup-card-body">
+                                        <div class="mockup-line"></div>
+                                        <div class="mockup-line short"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mockup-shadow"></div>
             </div>
         </div>
     </section>
 
-    <!-- SECTION OFFRES -->
-    <section id="plans" class="py-20 px-4 bg-white">
+    <!-- ========== PARTENAIRES ========== -->
+    <section class="py-16 bg-[#F9FAFB] border-y border-gray-100">
+        <div class="max-w-6xl mx-auto px-6">
+            <p class="text-center text-sm font-medium text-gray-400 mb-8 tracking-widest uppercase reveal">Ils nous font confiance</p>
+            <div class="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-50">
+                <div class="text-2xl font-black text-gray-300">SENPLUS</div>
+                <div class="text-2xl font-black text-gray-300">TECHCORP</div>
+                <div class="text-2xl font-black text-gray-300">STARTUPHUB</div>
+                <div class="text-2xl font-black text-gray-300">BTPSA</div>
+                <div class="text-2xl font-black text-gray-300">AFRITECH</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FEATURES ========== -->
+    <section id="features" class="py-32 px-6">
         <div class="max-w-6xl mx-auto">
-            <h2 class="text-4xl font-bold text-center text-[#1e3a5f] mb-4 fade-in">
-                Nos offres
-            </h2>
-            <p class="text-center text-gray-600 mb-12 fade-in">
-                Choisissez la formule qui correspond à votre entreprise
-            </p>
-            
+            <div class="text-center mb-20">
+                <div class="badge-pill mx-auto mb-6 reveal">
+                    <span class="badge-dot"></span>
+                    <span>Fonctionnalités</span>
+                </div>
+                <h2 class="section-title reveal">Tout ce dont vous avez besoin</h2>
+                <p class="section-subtitle reveal">Une plateforme complète pour simplifier la gestion de vos équipes</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature Card -->
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#EBF5FF]">
+                        <span class="text-2xl">📱</span>
+                    </div>
+                    <h3 class="feature-title">Pointage QR Code</h3>
+                    <p class="feature-desc">Un scan, et c'est fait. Vos employés pointent en entrée et sortie en une seconde.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#ECFDF5]">
+                        <span class="text-2xl">📍</span>
+                    </div>
+                    <h3 class="feature-title">Géolocalisation</h3>
+                    <p class="feature-desc">Vérifiez où vos équipes pointent. Idéal pour les travailleurs mobiles et le terrain.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#FFF7ED]">
+                        <span class="text-2xl">📊</span>
+                    </div>
+                    <h3 class="feature-title">Rapports intelligents</h3>
+                    <p class="feature-desc">Des rapports clairs et exportables en un clic. PDF, Excel, tout est là.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#FEF2F2]">
+                        <span class="text-2xl">🔔</span>
+                    </div>
+                    <h3 class="feature-title">Alertes instantanées</h3>
+                    <p class="feature-desc">Retards, absences, anomalies : soyez notifié en temps réel sur votre téléphone.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#F0F9FF]">
+                        <span class="text-2xl">📅</span>
+                    </div>
+                    <h3 class="feature-title">Gestion des congés</h3>
+                    <p class="feature-desc">Demandes, validations, soldes : tout est centralisé et automatisé.</p>
+                </div>
+
+                <div class="feature-card reveal">
+                    <div class="feature-icon bg-[#F5F3FF]">
+                        <span class="text-2xl">🔒</span>
+                    </div>
+                    <h3 class="feature-title">Conforme RGPD</h3>
+                    <p class="feature-desc">Données chiffrées, accès sécurisés, hébergement européen. La confiance avant tout.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== HOW IT WORKS ========== -->
+    <section id="how-it-works" class="py-32 px-6 bg-[#F9FAFB]">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20">
+                <div class="badge-pill mx-auto mb-6 reveal">
+                    <span class="badge-dot"></span>
+                    <span>Simple comme bonjour</span>
+                </div>
+                <h2 class="section-title reveal">Démarrez en 3 minutes</h2>
+                <p class="section-subtitle reveal">Pas de formation, pas de matériel coûteux. Juste votre téléphone.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-10">
+                <div class="step-card reveal">
+                    <div class="step-number">1</div>
+                    <h3 class="text-xl font-bold text-[#1A1A2E] mb-3">Créez votre compte</h3>
+                    <p class="text-[#666]">Inscrivez votre entreprise gratuitement. Pas de carte bancaire, pas d'engagement.</p>
+                </div>
+                <div class="step-card reveal">
+                    <div class="step-number">2</div>
+                    <h3 class="text-xl font-bold text-[#1A1A2E] mb-3">Ajoutez vos employés</h3>
+                    <p class="text-[#666]">Importez votre équipe ou invitez-les par email. Générez leurs QR codes.</p>
+                </div>
+                <div class="step-card reveal">
+                    <div class="step-number">3</div>
+                    <h3 class="text-xl font-bold text-[#1A1A2E] mb-3">C'est parti !</h3>
+                    <p class="text-[#666]">Vos employés scannent, vous suivez. Simple, rapide, efficace.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== TESTIMONIALS ========== -->
+    <section id="testimonials" class="py-32 px-6 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20">
+                <h2 class="section-title reveal">Ils adorent OnTime</h2>
+                <p class="section-subtitle reveal">+500 entreprises nous font confiance au quotidien</p>
+            </div>
             <div class="grid md:grid-cols-3 gap-8">
+                <div class="testimonial-card reveal">
+                    <p class="text-[#555] leading-relaxed mb-6 italic">"OnTime a divisé par 3 le temps passé sur la gestion des présences. L'interface est magnifique et intuitive."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-[#0052CC] to-[#0040A0] rounded-full flex items-center justify-center text-white font-bold text-sm">MD</div>
+                        <div>
+                            <div class="font-semibold text-[#1A1A2E] text-sm">Mamadou Diallo</div>
+                            <div class="text-xs text-gray-400">DRH, TechCorp</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card reveal">
+                    <p class="text-[#555] leading-relaxed mb-6 italic">"La géolocalisation a changé la donne pour nos équipes terrain. Je recommande à 100%."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-[#008060] to-[#006040] rounded-full flex items-center justify-center text-white font-bold text-sm">AS</div>
+                        <div>
+                            <div class="font-semibold text-[#1A1A2E] text-sm">Awa Sow</div>
+                            <div class="text-xs text-gray-400">CEO, BTP Solutions</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card reveal">
+                    <p class="text-[#555] leading-relaxed mb-6 italic">"Support réactif, fonctionnalités complètes. OnTime est devenu indispensable pour notre startup."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-[#BA1A1A] to-[#8B0000] rounded-full flex items-center justify-center text-white font-bold text-sm">IK</div>
+                        <div>
+                            <div class="font-semibold text-[#1A1A2E] text-sm">Ibrahima Kane</div>
+                            <div class="text-xs text-gray-400">Fondateur, StartupHub</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PLANS ========== -->
+    <section id="plans" class="py-32 px-6 bg-[#F9FAFB]">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-20">
+                <div class="badge-pill mx-auto mb-6 reveal">
+                    <span class="badge-dot"></span>
+                    <span>Tarifs</span>
+                </div>
+                <h2 class="section-title reveal">Des prix simples, sans surprise</h2>
+                <p class="section-subtitle reveal">Choisissez votre formule. Évoluez quand vous voulez.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8 items-start">
                 
-                <!-- Plan Starter -->
-                <div class="plan-card bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-100 hover:border-[#f97316] transition fade-in">
-                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2">Starter</h3>
-                    <p class="text-gray-500 mb-6">Pour les petites équipes</p>
-                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
-                        Gratuit
+                <!-- Starter -->
+                <div class="plan-card reveal">
+                    <div class="plan-header">
+                        <h3 class="text-xl font-bold text-[#1A1A2E]">Starter</h3>
+                        <p class="text-sm text-gray-400">Pour débuter</p>
                     </div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Jusqu'à 10 employés
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Pointage de base
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Rapports simples
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-red-500">❌</span> Export Excel
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-red-500">❌</span> Géolocalisation
-                        </li>
+                    <div class="plan-price">Gratuit</div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> Jusqu'à 10 employés</li>
+                        <li><span class="check">✓</span> Pointage QR Code</li>
+                        <li><span class="check">✓</span> Rapports basiques</li>
+                        <li><span class="cross">✕</span> Export Excel</li>
+                        <li><span class="cross">✕</span> Géolocalisation</li>
                     </ul>
-                    <button onclick="openRegister('starter')" class="w-full py-3 bg-[#1e3a5f] text-white rounded-lg font-medium hover:bg-blue-900 transition">
-                        Commencer gratuitement
-                    </button>
+                    <button onclick="openRegister('starter')" class="btn-plan-outline w-full">Commencer</button>
                 </div>
 
-                <!-- Plan Pro -->
-                <div class="plan-card bg-white rounded-2xl shadow-xl p-8 border-2 border-[#f97316] relative transform scale-105 fade-in">
-                    <span class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#f97316] text-white px-6 py-1 rounded-full text-sm font-bold">
-                        Recommandé
-                    </span>
-                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2 mt-2">Pro</h3>
-                    <p class="text-gray-500 mb-6">Pour les équipes en croissance</p>
-                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
-                        29 000 FCFA<span class="text-lg text-gray-500">/mois</span>
+                <!-- Pro -->
+                <div class="plan-card plan-card-pro reveal">
+                    <div class="plan-badge">⭐ Le plus populaire</div>
+                    <div class="plan-header">
+                        <h3 class="text-xl font-bold text-[#1A1A2E]">Pro</h3>
+                        <p class="text-sm text-gray-400">Pour les équipes</p>
                     </div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Jusqu'à 50 employés
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Pointage avancé
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Rapports avancés
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Export Excel
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Géolocalisation
-                        </li>
+                    <div class="plan-price">29 000 <span class="text-lg font-normal text-gray-400">FCFA/mois</span></div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> Jusqu'à 50 employés</li>
+                        <li><span class="check">✓</span> Pointage avancé</li>
+                        <li><span class="check">✓</span> Rapports détaillés</li>
+                        <li><span class="check">✓</span> Export Excel</li>
+                        <li><span class="check">✓</span> Géolocalisation</li>
                     </ul>
-                    <button onclick="openRegister('pro')" class="w-full py-3 bg-[#f97316] text-white rounded-lg font-medium hover:bg-orange-600 transition">
-                        Essai gratuit 14 jours
-                    </button>
+                    <button onclick="openRegister('pro')" class="btn-primary w-full">Essai gratuit 14 jours</button>
                 </div>
 
-                <!-- Plan Enterprise -->
-                <div class="plan-card bg-white rounded-2xl shadow-lg p-8 border-2 border-gray-100 hover:border-[#f97316] transition fade-in">
-                    <h3 class="text-2xl font-bold text-[#1e3a5f] mb-2">Enterprise</h3>
-                    <p class="text-gray-500 mb-6">Pour les grandes entreprises</p>
-                    <div class="text-4xl font-bold text-[#1e3a5f] mb-6">
-                        99 000 FCFA<span class="text-lg text-gray-500">/mois</span>
+                <!-- Enterprise -->
+                <div class="plan-card reveal">
+                    <div class="plan-header">
+                        <h3 class="text-xl font-bold text-[#1A1A2E]">Enterprise</h3>
+                        <p class="text-sm text-gray-400">Sur mesure</p>
                     </div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Employés illimités
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Toutes les fonctionnalités
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> API personnalisée
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Support dédié
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span> Personnalisation
-                        </li>
+                    <div class="plan-price">99 000 <span class="text-lg font-normal text-gray-400">FCFA/mois</span></div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> Employés illimités</li>
+                        <li><span class="check">✓</span> Tout Pro inclus</li>
+                        <li><span class="check">✓</span> API personnalisée</li>
+                        <li><span class="check">✓</span> Support dédié 24/7</li>
+                        <li><span class="check">✓</span> Personnalisation</li>
                     </ul>
-                    <button onclick="openRegister('enterprise')" class="w-full py-3 bg-[#1e3a5f] text-white rounded-lg font-medium hover:bg-blue-900 transition">
-                        Nous contacter
-                    </button>
+                    <button onclick="openRegister('enterprise')" class="btn-plan-outline w-full">Nous contacter</button>
                 </div>
 
             </div>
         </div>
     </section>
 
-    <!-- MODAL INSCRIPTION -->
-    <div id="registerModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
-            <button onclick="closeRegister()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+    <!-- ========== CTA ========== -->
+    <section class="py-32 px-6 bg-gradient-to-br from-[#0052CC] to-[#003080] relative overflow-hidden">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        </div>
+        <div class="max-w-4xl mx-auto text-center relative z-10">
+            <h2 class="text-4xl md:text-5xl font-black text-white mb-6 reveal">Prêt à simplifier votre gestion ?</h2>
+            <p class="text-xl text-white/70 mb-10 reveal">Rejoignez les 500+ entreprises qui ont déjà fait le choix OnTime.</p>
+            <button onclick="scrollToPlans()" class="btn-white reveal">
+                Commencer gratuitement →
+            </button>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="bg-[#0F0F1A] text-white py-16 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-10 mb-12">
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-[#0052CC] to-[#0040A0] rounded-xl flex items-center justify-center">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <span class="text-xl font-black tracking-tight">OnTime</span>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed max-w-sm">La solution de pointage moderne conçue pour les entreprises africaines.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-sm mb-4 text-gray-300">Produit</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#features" class="hover:text-white transition">Fonctionnalités</a></li>
+                        <li><a href="#plans" class="hover:text-white transition">Tarifs</a></li>
+                        <li><a href="#" class="hover:text-white transition">API</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-sm mb-4 text-gray-300">Support</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Contact</a></li>
+                        <li><a href="#" class="hover:text-white transition">Documentation</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-gray-500 text-xs">© 2026 OnTime. Tous droits réservés.</p>
+                <div class="flex gap-6 text-xs text-gray-500">
+                    <a href="#" class="hover:text-white transition">Confidentialité</a>
+                    <a href="#" class="hover:text-white transition">CGU</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========== MODAL INSCRIPTION ========== -->
+    <div id="registerModal" class="modal hidden">
+        <div class="modal-backdrop" onclick="closeRegister()"></div>
+        <div class="modal-content">
+            <button onclick="closeRegister()" class="modal-close">✕</button>
             
-            <h3 class="text-2xl font-bold text-[#1e3a5f] mb-6">Créez votre compte</h3>
-            
-            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
-                <!-- Plan sélectionné (caché) -->
+            <div class="modal-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+
+            <h3 class="text-2xl font-black text-[#1A1A2E] mb-1 text-center">Créez votre compte</h3>
+            <p class="text-gray-400 text-sm text-center mb-6">Essai gratuit de 14 jours. Sans engagement.</p>
+
+            <form id="registerForm" onsubmit="return handleRegister(event)" class="space-y-4">
                 <input type="hidden" id="planId" name="plan_id" value="">
-                
+
                 <!-- Nom entreprise -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom de l'entreprise *</label>
+                    <label class="form-label">Nom de l'entreprise</label>
                     <input type="text" id="companyName" name="nom" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
-                           placeholder="ex: SenPlus">
+                           class="form-input"
+                           placeholder="Ex: SenPlus"
+                           autocomplete="organization">
+                    <p id="companyNameError" class="form-error hidden"></p>
                 </div>
-                
+
                 <!-- Email -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email professionnel *</label>
+                    <label class="form-label">Email professionnel</label>
                     <input type="email" id="email" name="email" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
-                           placeholder="ex: contact@senplus.com">
-                    <p id="emailError" class="text-red-500 text-sm mt-1 hidden">Email invalide</p>
+                           class="form-input"
+                           placeholder="Ex: contact@senplus.com"
+                           autocomplete="email">
+                    <p id="emailError" class="form-error hidden"></p>
                 </div>
-                
+
                 <!-- Mot de passe -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
+                    <label class="form-label">Mot de passe</label>
                     <input type="password" id="password" name="password" required
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f97316] focus:border-[#f97316] outline-none transition"
-                           placeholder="Minimum 8 caractères">
-                    
-                    <!-- Indicateurs de force -->
-                    <div class="mt-2 space-y-1 text-sm">
-                        <p id="lengthCheck" class="text-red-500">❌ Minimum 8 caractères</p>
-                        <p id="uppercaseCheck" class="text-red-500">❌ Au moins 1 majuscule</p>
-                        <p id="numberCheck" class="text-red-500">❌ Au moins 1 chiffre</p>
-                        <p id="symbolCheck" class="text-red-500">❌ Au moins 1 symbole (!@#$%^&*)</p>
-                    </div>
+                           class="form-input"
+                           placeholder="Créez un mot de passe sécurisé"
+                           autocomplete="new-password">
+                    <p id="passwordError" class="form-error hidden"></p>
                 </div>
-                
+
                 <!-- Plan affiché -->
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <p class="text-sm text-gray-600">Offre sélectionnée : <span id="selectedPlanName" class="font-bold text-[#1e3a5f]"></span></p>
+                <div class="plan-badge-selected">
+                    Offre : <span id="selectedPlanName" class="font-bold text-[#0052CC]"></span>
                 </div>
-                
-                <button type="submit" id="submitBtn"
-                        class="w-full py-3 bg-[#f97316] text-white rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    Créer mon compte
+
+                <button type="submit" id="submitBtn" class="btn-submit">
+                    <span id="submitText">Créer mon compte</span>
+                    <span id="submitLoader" class="hidden">
+                        <svg class="spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" fill="none" stroke-dasharray="31.4 31.4" stroke-linecap="round"/></svg>
+                        Création...
+                    </span>
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- FOOTER -->
-    <footer class="bg-[#1e3a5f] text-white py-8 px-4">
-        <div class="max-w-6xl mx-auto text-center">
-            <p class="text-lg font-bold mb-2">⏱️ OnTime</p>
-            <p class="text-gray-300">Le pointage simplifié pour votre entreprise</p>
-            <p class="text-gray-400 text-sm mt-4">© 2026 OnTime. Tous droits réservés.</p>
-        </div>
-    </footer>
+    <!-- ========== TOAST ========== -->
+    <div id="toast" class="toast hidden">
+        <span id="toastIcon"></span>
+        <span id="toastMessage"></span>
+    </div>
 
-    <!-- JavaScript -->
     <script src="/js/landing.js"></script>
 </body>
 </html>

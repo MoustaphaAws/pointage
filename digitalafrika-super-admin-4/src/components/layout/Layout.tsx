@@ -8,20 +8,20 @@ export function Layout({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const logout = useAuthStore(state => state.logout);
   const user = useAuthStore(state => state.user);
-  const hasSuperAdminRole = user?.role === 'superadmin';
+  const hasAppAccess = user?.role === 'superadmin' || user?.role === 'admin';
 
   useEffect(() => {
-    if (!hasValidStoredToken() || !hasSuperAdminRole) {
+    if (!hasValidStoredToken() || !hasAppAccess) {
       logout();
     }
-  }, [logout, hasSuperAdminRole]);
+  }, [logout, hasAppAccess]);
 
-  if (!isAuthenticated || !hasSuperAdminRole) {
+  if (!isAuthenticated || !hasAppAccess) {
     return <Navigate to="/login" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-stone-50 flex flex-col">
       <Navbar />
       <main className="flex-1 flex flex-col pt-16">
         <Toaster position="top-right" />

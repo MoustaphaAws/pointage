@@ -5,6 +5,8 @@ export interface AdminPermissions {
   canApplySanctions: boolean;
   canValidateAbsences: boolean;
   canManageEmployees: boolean;
+  canManageUsers?: boolean;      // ← Ajouter
+  canManagePlans?: boolean;      // ← Ajouter
 }
 
 export interface User {
@@ -16,6 +18,8 @@ export interface User {
   service: string;
   poste?: string;
   active: boolean;
+  companyName?: string | null;
+  entrepriseId?: string | null;
   adminPermissions?: AdminPermissions;
   createdAt?: string;
 }

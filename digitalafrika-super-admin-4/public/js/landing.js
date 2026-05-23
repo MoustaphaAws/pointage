@@ -1,240 +1,217 @@
-// ===== VARIABLES GLOBALES =====
-let selectedPlan = null;
-
+// ===== CONFIG =====
 const PLANS = {
     starter: { id: 1, name: 'Starter' },
     pro: { id: 2, name: 'Pro' },
     enterprise: { id: 3, name: 'Enterprise' }
 };
 
-// ===== ANIMATIONS AU SCROLL =====
-document.addEventListener('DOMContentLoaded', () => {
-    const fadeElements = document.querySelectorAll('.fade-in');
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, { threshold: 0.1 });
-    
-    fadeElements.forEach(el => observer.observe(el));
+let selectedPlan = null;
+
+// ===== NAVBAR SCROLL EFFECT =====
+window.addEventListener('scroll', () => {
+    const navbar = document.getElementById('navbar');
+    if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
 });
 
-// ===== SCROLL VERS LES PLANS =====
+// ===== REVEAL ANIMATIONS =====
+const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+        }
+    });
+}, observerOptions);
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== SCROLL FUNCTIONS =====
 function scrollToPlans() {
     document.getElementById('plans').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ===== OUVERTURE MODAL INSCRIPTION =====
+function scrollToFeatures() {
+    document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== MODAL =====
 function openRegister(planType) {
     selectedPlan = planType;
-    
-    // Mettre à jour le formulaire
     document.getElementById('planId').value = PLANS[planType].id;
     document.getElementById('selectedPlanName').textContent = PLANS[planType].name;
-    
-    // Afficher le modal
     document.getElementById('registerModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden'; // Bloquer le scroll
+    document.body.style.overflow = 'hidden';
 }
 
-// ===== FERMETURE MODAL =====
 function closeRegister() {
     document.getElementById('registerModal').classList.add('hidden');
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
     document.getElementById('registerForm').reset();
-    resetPasswordChecks();
+    clearAllErrors();
 }
 
-// ===== OUVERTURE LOGIN =====
 function openLogin() {
     window.location.href = '/login';
 }
 
-// ===== VALIDATION MOT DE PASSE EN TEMPS RÉEL =====
-document.addEventListener('DOMContentLoaded', () => {
-    const passwordInput = document.getElementById('password');
-    
-    if (passwordInput) {
-        passwordInput.addEventListener('input', () => {
-            const password = passwordInput.value;
-            
-            // Vérifications
-            const hasLength = password.length >= 8;
-            const hasUppercase = /[A-Z]/.test(password);
-            const hasNumber = /[0-9]/.test(password);
-            const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-            
-            // Mise à jour des indicateurs
-            updateCheck('lengthCheck', hasLength);
-            updateCheck('uppercaseCheck', hasUppercase);
-            updateCheck('numberCheck', hasNumber);
-            updateCheck('symbolCheck', hasSymbol);
-        });
+// ===== ERROR MANAGEMENT =====
+function showError(inputId, message) {
+    const input = document.getElementById(inputId);
+    const errorEl = document.getElementById(inputId + 'Error');
+    input.classList.add('error');
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+}
+
+function clearError(inputId) {
+    const input = document.getElementById(inputId);
+    const errorEl = document.getElementById(inputId + 'Error');
+    input.classList.remove('error');
+    errorEl.classList.add('hidden');
+}
+
+function clearAllErrors() {
+    ['companyName', 'email', 'password'].forEach(clearError);
+}
+
+// ===== PASSWORD VALIDATION LIVE =====
+const passwordInput = document.getElementById('password');
+const passwordChecks = {
+    length: false,
+    uppercase: false,
+    number: false,
+    symbol: false
+};
+
+passwordInput.addEventListener('input', () => {
+    const pwd = passwordInput.value;
+    passwordChecks.length = pwd.length >= 8;
+    passwordChecks.uppercase = /[A-Z]/.test(pwd);
+    passwordChecks.number = /[0-9]/.test(pwd);
+    passwordChecks.symbol = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+
+    // Message intelligent
+    const errorEl = document.getElementById('passwordError');
+    if (pwd.length === 0) {
+        clearError('password');
+    } else if (!passwordChecks.length) {
+        showError('password', 'Minimum 8 caractères requis');
+    } else if (!passwordChecks.uppercase) {
+        showError('password', '🔠 Ajoutez au moins une majuscule');
+    } else if (!passwordChecks.number) {
+        showError('password', '🔢 Ajoutez au moins un chiffre');
+    } else if (!passwordChecks.symbol) {
+        showError('password', '🔣 Ajoutez au moins un symbole (!@#$%^&*)');
+    } else {
+        clearError('password');
     }
 });
 
-function updateCheck(elementId, isValid) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        if (isValid) {
-            element.innerHTML = element.innerHTML.replace('❌', '✅');
-            element.classList.remove('text-red-500');
-            element.classList.add('text-green-500');
-        } else {
-            element.innerHTML = element.innerHTML.replace('✅', '❌');
-            element.classList.remove('text-green-500');
-            element.classList.add('text-red-500');
-        }
-    }
-}
-
-function resetPasswordChecks() {
-    ['lengthCheck', 'uppercaseCheck', 'numberCheck', 'symbolCheck'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.innerHTML = element.innerHTML.replace('✅', '❌');
-            element.classList.remove('text-green-500');
-            element.classList.add('text-red-500');
-        }
-    });
-}
-
-// ===== VALIDATION EMAIL =====
-document.addEventListener('DOMContentLoaded', () => {
-    const emailInput = document.getElementById('email');
-    
-    if (emailInput) {
-        emailInput.addEventListener('input', () => {
-            const emailError = document.getElementById('emailError');
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (emailInput.value && !emailRegex.test(emailInput.value)) {
-                emailError.classList.remove('hidden');
-            } else {
-                emailError.classList.add('hidden');
-            }
-        });
-    }
-});
-
-// ===== GESTION DU FORMULAIRE =====
+// ===== FORM SUBMISSION =====
 async function handleRegister(event) {
     event.preventDefault();
-    
-    // Récupération des données
+
     const formData = {
         nom: document.getElementById('companyName').value.trim(),
         email: document.getElementById('email').value.trim(),
         password: document.getElementById('password').value,
         plan_id: parseInt(document.getElementById('planId').value)
     };
-    
-    // Validation finale
-    if (!validateForm(formData)) {
-        return;
+
+    // Validation
+    clearAllErrors();
+    let valid = true;
+
+    if (!formData.nom || formData.nom.length < 2) {
+        showError('companyName', 'Le nom doit contenir au moins 2 caractères');
+        valid = false;
     }
-    
-    // Désactiver le bouton pendant l'envoi
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        showError('email', 'Veuillez entrer un email valide');
+        valid = false;
+    }
+
+    const { length, uppercase, number, symbol } = passwordChecks;
+    if (!length || !uppercase || !number || !symbol) {
+        showError('password', 'Le mot de passe ne respecte pas les critères');
+        valid = false;
+    }
+
+    if (!formData.plan_id) {
+        showToast('Veuillez sélectionner une offre', 'error');
+        valid = false;
+    }
+
+    if (!valid) return false;
+
+    // Submit
     const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitLoader = document.getElementById('submitLoader');
+
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Création en cours...';
-    
-    console.log('Données envoyées au backend :', formData);
-    
-    // ==========================================
-    // APPEL API - POST /api/entreprises/register
-    // ==========================================
+    submitText.classList.add('hidden');
+    submitLoader.classList.remove('hidden');
+
     try {
         const apiBase = window.ONTIME_API_URL || '/api';
         const response = await fetch(`${apiBase}/entreprises/register`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nom: formData.nom,
-                email: formData.email,
-                password: formData.password,
-                plan_id: formData.plan_id
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
         });
 
         const result = await response.json();
 
         if (response.ok) {
-            alert('✅ Entreprise créée avec succès !');
-            closeRegister();
-            window.location.href = '/login';
-        } else if (response.status === 409 || result.code === 'EMAIL_EXISTS') {
-            const emailError = document.getElementById('emailError');
-            emailError.textContent = result.message || 'Cet email est déjà utilisé. Veuillez choisir un autre email.';
-            emailError.classList.remove('hidden');
-        } else {
-            alert('❌ ' + (result.message || 'Erreur lors de l\'inscription'));
-        }
-        
-    } catch (error) {
-        console.error('Erreur réseau :', error);
-        alert('❌ Erreur de connexion au serveur. Veuillez réessayer.');
-    } finally {
-        // Réactiver le bouton dans tous les cas
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Créer mon compte';
-    }
-}
-
-// ===== VALIDATION DU FORMULAIRE =====
-function validateForm(data) {
-    // Vérifier nom entreprise
-    if (!data.nom || data.nom.length < 2) {
-        alert('Veuillez entrer un nom d\'entreprise valide');
-        return false;
-    }
-    
-    // Vérifier email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-        alert('Veuillez entrer un email valide');
-        return false;
-    }
-    
-    // Vérifier mot de passe
-    const hasLength = data.password.length >= 8;
-    const hasUppercase = /[A-Z]/.test(data.password);
-    const hasNumber = /[0-9]/.test(data.password);
-    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(data.password);
-    
-    if (!hasLength || !hasUppercase || !hasNumber || !hasSymbol) {
-        alert('Le mot de passe ne respecte pas les critères de sécurité');
-        return false;
-    }
-    
-    // Vérifier plan
-    if (!data.plan_id) {
-        alert('Veuillez sélectionner une offre');
-        return false;
-    }
-    
-    return true;
-}
-
-// ===== FERMETURE MODAL EN CLIQUANT À L'EXTÉRIEUR =====
-document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('registerModal');
-    
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+            showToast('✅ Compte créé avec succès ! Redirection...', 'success');
+            setTimeout(() => {
                 closeRegister();
-            }
-        });
+                window.location.href = '/login';
+            }, 1500);
+        } else if (response.status === 409 || result.code === 'EMAIL_EXISTS') {
+            showError('email', result.message || 'Cet email est déjà utilisé');
+        } else {
+            showToast(result.message || 'Erreur lors de l\'inscription', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur réseau:', error);
+        showToast('Erreur de connexion au serveur', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitText.classList.remove('hidden');
+        submitLoader.classList.add('hidden');
     }
-});
 
-// ===== FERMETURE MODAL AVEC ÉCHAP =====
+    return false;
+}
+
+// ===== TOAST =====
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastIcon = document.getElementById('toastIcon');
+    const toastMessage = document.getElementById('toastMessage');
+
+    toast.classList.remove('hidden', 'success', 'error');
+    toast.classList.add(type);
+    toastIcon.textContent = type === 'success' ? '✅' : '❌';
+    toastMessage.textContent = message;
+
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+
+// ===== CLOSE MODAL WITH ESC OR CLICK OUTSIDE =====
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         const modal = document.getElementById('registerModal');
