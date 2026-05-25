@@ -8,7 +8,6 @@ import {
   Database,
   LogOut,
   ChevronDown,
-  QrCode,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -16,7 +15,6 @@ import { useState } from 'react';
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/qrcodes', label: 'QR Codes', icon: QrCode },
   { path: '/users', label: 'Utilisateurs', icon: Users },
   { path: '/rh-actions', label: 'Supervision', icon: ShieldCheck },
   { path: '/reports', label: 'Rapports', icon: FileText },
