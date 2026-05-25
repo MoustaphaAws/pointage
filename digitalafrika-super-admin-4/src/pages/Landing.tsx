@@ -18,13 +18,9 @@ import {
 import { useAuthStore, hasValidStoredToken } from '../store/useAuthStore';  // ← AJOUTE hasValidStoredToken ici
 import { User } from '../types';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-// FIX: API_BASE as env variable with fallback
-// Pour le développement local :
-//const API_BASE = 'http://localhost:3001/api';
-
-// Pour la production (Render) :
-const API_BASE = 'https://pointage-ufj2.onrender.com/api';
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3001/api' 
+  : 'https://pointage-ufj2.onrender.com/api';
 
 
 type Plan = {
@@ -47,7 +43,7 @@ const PLANS_DATA: Plan[] = [
   },
   {
     id: 2, nom: 'Standard', slug: 'standard', prix: 12900, prixAnnuel: 11610, maxEmployes: 25,
-    features: ["Jusqu'à 25 employés", 'Pointage QR + code', 'Gestion des absences', 'Rapports détaillés', 'Support prioritaire', 'Planning simple'],
+    features: ["Jusqu'à 25 employés", 'Pointage QR code', 'Gestion des absences', 'Rapports détaillés', 'Support prioritaire', 'Planning simple'],
   },
   {
     id: 3, nom: 'Premium', slug: 'premium', prix: 19900, prixAnnuel: 17910, maxEmployes: 50,
