@@ -8,6 +8,7 @@ import {
   Database,
   LogOut,
   ChevronDown,
+  QrCode,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -15,6 +16,7 @@ import { useState } from 'react';
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/qrcodes', label: 'QR Codes', icon: QrCode },
   { path: '/users', label: 'Utilisateurs', icon: Users },
   { path: '/rh-actions', label: 'Supervision', icon: ShieldCheck },
   { path: '/reports', label: 'Rapports', icon: FileText },
@@ -88,28 +90,19 @@ export function Navbar() {
                 </p>
                 <p className="text-[10px] text-sky-200/70 mt-1">{user?.email}</p>
               </div>
-              <ChevronDown
-                size={14}
-                className={cn('text-sky-200/70 transition-transform', isUserMenuOpen && 'rotate-180')}
-              />
+              <ChevronDown size={14} className={cn('text-sky-200/70 transition-transform', isUserMenuOpen && 'rotate-180')} />
             </button>
 
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-52 rounded-xl shadow-xl p-2 border border-sky-700" 
                 style={{ background: 'linear-gradient(135deg, #0c2d5e 0%, #094e8a 100%)' }}>
                 <div className="px-3 py-2 border-b border-sky-700/50 mb-2">
-                  <p className="text-[10px] font-medium text-sky-200/50 uppercase tracking-wider">
-                    Compte
-                  </p>
+                  <p className="text-[10px] font-medium text-sky-200/50 uppercase tracking-wider">Compte</p>
                   <p className="text-xs text-sky-100 truncate mt-1">{user?.email}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="flex items-center gap-3 px-3 py-2 w-full text-xs font-medium text-sky-100/70 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
-                >
-                  <LogOut size={14} />
-                  Déconnexion
+                <button type="button" onClick={logout}
+                  className="flex items-center gap-3 px-3 py-2 w-full text-xs font-medium text-sky-100/70 hover:bg-white/10 hover:text-white transition-colors rounded-lg">
+                  <LogOut size={14} /> Déconnexion
                 </button>
               </div>
             )}
