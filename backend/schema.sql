@@ -408,7 +408,7 @@ CREATE INDEX IF NOT EXISTS idx_employes_entreprise ON employes(entreprise_id);
 -- COMPTE SUPERADMIN
 -- ============================================================
 INSERT INTO employes (matricule, first_name, last_name, email, password_hash, phone, role, service_id, poste, type_contrat, date_embauche, first_login, uid_badge)
-SELECT 'DA-0000', 'Super', 'Admin', 'boss@digitalafrika.com', crypt('Admin@2026!', gen_salt('bf')), '+221770000000', 'superadmin',
+SELECT 'DA-0000', 'Super', 'Admin', 'boss@digitalafrika.com', '$2b$10$placeholder', '+221770000000', 'superadmin',
        id, 'Directeur Général', 'CDI', '2022-01-01', FALSE, 'SUPER-RFID-001'
 FROM services WHERE nom = 'Direction'
 ON CONFLICT (email) DO NOTHING;
