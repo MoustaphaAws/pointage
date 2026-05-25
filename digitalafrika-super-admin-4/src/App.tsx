@@ -9,14 +9,13 @@ import ReportsPage from './pages/Reports';
 import EmployeeDetailsPage from './pages/EmployeeDetails';
 import Landing from './pages/Landing';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
+import QRCodePage from './pages/QRCodePage';
 
 export default function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   
   const hasToken = hasValidStoredToken();
-  
-  // Simplifié : dès qu'on a un token valide, on peut accéder
   const canAccess = isAuthenticated && hasToken;
 
   return (
@@ -31,111 +30,58 @@ export default function App() {
         
         <Route
           path="/dashboard"
-          element={
-            canAccess ? (
-              <Layout>
-                <Dashboard />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><Dashboard /></Layout>) : (<Navigate to="/" replace />)}
         />
         
         <Route
           path="/users"
-          element={
-            canAccess ? (
-              <Layout>
-                <UsersPage />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><UsersPage /></Layout>) : (<Navigate to="/" replace />)}
         />
         
         <Route
           path="/users/:id"
-          element={
-            canAccess ? (
-              <Layout>
-                <EmployeeDetailsPage />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><EmployeeDetailsPage /></Layout>) : (<Navigate to="/" replace />)}
         />
 
         <Route
           path="/rh-actions"
-          element={
-            canAccess ? (
-              <Layout>
-                <RHSupervision />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><RHSupervision /></Layout>) : (<Navigate to="/" replace />)}
         />
 
         <Route
           path="/logs"
-          element={
-            canAccess ? (
-              <Layout>
-                <AuditLogsPage />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><AuditLogsPage /></Layout>) : (<Navigate to="/" replace />)}
         />
 
         <Route
           path="/reports"
-          element={
-            canAccess ? (
-              <Layout>
-                <ReportsPage />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><ReportsPage /></Layout>) : (<Navigate to="/" replace />)}
         />
 
         <Route
           path="/settings"
-          element={
-            canAccess ? (
-              <Layout>
-                <SettingsPage />
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+          element={canAccess ? (<Layout><SettingsPage /></Layout>) : (<Navigate to="/" replace />)}
+        />
+
+        <Route
+          path="/qrcodes"
+          element={canAccess ? (<Layout><QRCodePage /></Layout>) : (<Navigate to="/" replace />)}
         />
 
         <Route
           path="*"
-          element={
-            canAccess ? (
-              <Layout>
-                <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <h3 className="text-lg font-bold font-mono uppercase text-gray-400">Section en cours de déploiement</h3>
-                    <p className="text-xs font-mono italic text-gray-300 mt-2">Contrôle Super Admin requis</p>
-                  </div>
+          element={canAccess ? (
+            <Layout>
+              <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <h3 className="text-lg font-bold font-mono uppercase text-gray-400">Section en cours de déploiement</h3>
+                  <p className="text-xs font-mono italic text-gray-300 mt-2">Contrôle Super Admin requis</p>
                 </div>
-              </Layout>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
+              </div>
+            </Layout>
+          ) : (
+            <Navigate to="/" replace />
+          )}
         />
       </Routes>
     </BrowserRouter>
