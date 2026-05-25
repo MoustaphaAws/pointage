@@ -7,23 +7,29 @@ async function seedSuperAdmin() {
     // Vérifier si le SuperAdmin existe déjà
     const check = await query("SELECT id FROM employes WHERE email = 'boss@digitalafrika.com'");
     if (check.rowCount) {
-      console.log("✅ SuperAdmin existe déjà (boss@digitalafrika.com)");
+      // Mettre à jour le mot de passe pour être sûr qu'il correspond
+      const hash = await bcrypt.hash("Admin@2026!", 10);
+      await query(
+        "UPDATE employes SET password_hash = $1, service_id = (SELECT id FROM services WHERE nom = 'Direction' LIMIT 1) WHERE email = 'boss@digitalafrika.com'",
+        [hash]
+      );
+      console.log("✅ SuperAdmin mis à jour (boss@digitalafrika.com / Admin@2026!)");
       process.exit(0);
     }
 
-    // Trouver le service Direction
-    const srvResult = await query("SELECT id FROM services WHERE nom = 'Direction'");
+    // Trouver ou créer le service Direction
+    let srvResult = await query("SELECT id FROM services WHERE nom = 'Direction'");
     if (!srvResult.rowCount) {
-      console.error("❌ Service 'Direction' introuvable. Exécutez schema.sql d'abord.");
-      process.exit(1);
+      await query("INSERT INTO services (nom) VALUES ('Direction') ON CONFLICT (nom) DO NOTHING");
+      srvResult = await query("SELECT id FROM services WHERE nom = 'Direction'");
     }
 
     const serviceId = srvResult.rows[0].id;
     const hash = await bcrypt.hash("Admin@2026!", 10);
 
     await query(
-      `INSERT INTO employes (matricule, first_name, last_name, email, password_hash, phone, role, service_id, poste, type_contrat, date_embauche, first_login, uid_badge)
-       VALUES ('DA-0000', 'Super', 'Admin', 'boss@digitalafrika.com', $1, '+221770000000', 'superadmin', $2, 'Directeur Général', 'CDI', '2022-01-01', FALSE, 'SUPER-RFID-001')`,
+      `INSERT INTO employes (first_name, last_name, email, password_hash, role, service_id, poste, service, actif)
+       VALUES ('Super', 'Admin', 'boss@digitalafrika.com', $1, 'superadmin', $2, 'Directeur Général', 'Direction', true)`,
       [hash, serviceId]
     );
 
