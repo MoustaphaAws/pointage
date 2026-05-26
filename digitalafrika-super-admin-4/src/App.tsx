@@ -8,6 +8,7 @@ import AuditLogsPage from './pages/Logs';
 import ReportsPage from './pages/Reports';
 import EmployeeDetailsPage from './pages/EmployeeDetails';
 import Landing from './pages/Landing';
+import GestionQRCodes from './components/GestionQRCodes';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 
@@ -17,8 +18,10 @@ export default function App() {
   
   const hasToken = hasValidStoredToken();
   
-  // Simplifié : dès qu'on a un token valide, on peut accéder
   const canAccess = isAuthenticated && hasToken;
+  
+  // Récupérer le slug de l'entreprise depuis l'utilisateur connecté
+  const entrepriseSlug = user?.companyName?.toLowerCase() || 'default';
 
   return (
     <BrowserRouter>
@@ -30,6 +33,20 @@ export default function App() {
           element={canAccess ? <Navigate to="/dashboard" replace /> : <Landing />}
         />
         
+        {/* Route QR Code dynamique par entreprise */}
+        <Route
+          path="/:entreprise/page/qr-code"
+          element={
+            canAccess ? (
+              <Layout>
+                <GestionQRCodes onQrActiveChange={() => {}} />
+              </Layout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
         <Route
           path="/dashboard"
           element={

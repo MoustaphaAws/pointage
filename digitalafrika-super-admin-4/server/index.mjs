@@ -17,7 +17,6 @@ import servicesRoutes from "./routes/services.mjs";
 import joursFeriesRoutes from "./routes/jours-feries.mjs";
 import notificationsRoutes from "./routes/notifications.mjs";
 import sanctionsRoutes from "./routes/sanctions.mjs";
-import qrcodesRoutes from "./routes/qrcodes.mjs";
 import statsRoutes from "./routes/stats.mjs";
 import exportsRoutes from "./routes/exports.mjs";
 import superadminRoutes from "./routes/superadmin.mjs";
@@ -103,7 +102,6 @@ app.use("/api/services", requireAuth, servicesRoutes);
 app.use("/api/jours-feries", requireAuth, joursFeriesRoutes);
 app.use("/api/notifications", requireAuth, notificationsRoutes);
 app.use("/api/sanctions", requireAuth, sanctionsRoutes);
-app.use("/api/qrcodes", requireAuth, qrcodesRoutes);
 app.use("/api/stats", requireAuth, statsRoutes);
 app.use("/api/exports", requireAuth, exportsRoutes);
 
@@ -176,3 +174,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+
