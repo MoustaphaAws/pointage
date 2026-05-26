@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Button, Badge } from '../components/ui/LayoutComponents';
 import { AdminPermissions, User } from '../types';
-import { Plus, Search, Filter, Edit2, ShieldCheck, ShieldOff, Trash2, UserCog, UserX, UserCheck, CheckSquare, Square } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, ShieldCheck, ShieldOff, Trash2, UserCog, UserX, UserCheck, CheckSquare, Square, QrCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, updateUser, desactiverEmploye, desactiverPlusieursEmployes, reactiverEmploye, supprimerEmploye } from '../services/superAdminApi';
 import { useNavigate } from 'react-router-dom';
@@ -280,6 +280,11 @@ export default function UsersPage() {
     return { label: 'Partiel', className: 'bg-amber-50 text-amber-700 border-amber-200' };
   };
 
+  // Récupérer le companyName depuis le store
+  const { useAuthStore } = require('../store/useAuthStore');
+  const userStore = useAuthStore.getState();
+  const companySlug = userStore.user?.companyName?.toLowerCase() || 'default';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-slate-200 pb-4">
@@ -287,10 +292,20 @@ export default function UsersPage() {
           <h2 className="text-2xl font-bold text-slate-800">Gestion Absolue</h2>
           <p className="text-xs text-slate-500 font-medium uppercase mt-1">Contrôle total des comptes (Employés & Admins RH)</p>
         </div>
-        <Button className="flex items-center gap-2" onClick={() => { setShowCreateForm(true); setEditingUserId(null); setForm({ ...emptyForm, adminPermissions: clonePermissions() }); }}>
-          <Plus size={16} />
-          Créer un profil
-        </Button>
+        <div className="flex gap-2">
+          {/* ✅ BOUTON QR CODE */}
+          <Button 
+            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800"
+            onClick={() => navigate(`/${companySlug}/page/qr-code`)}
+          >
+            <QrCode size={16} />
+            Pointage
+          </Button>
+          <Button className="flex items-center gap-2" onClick={() => { setShowCreateForm(true); setEditingUserId(null); setForm({ ...emptyForm, adminPermissions: clonePermissions() }); }}>
+            <Plus size={16} />
+            Créer un profil
+          </Button>
+        </div>
       </div>
 
       {/* BOUTONS D'ACTIONS EN MASSE */}
