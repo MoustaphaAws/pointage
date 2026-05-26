@@ -59,3 +59,15 @@ export async function testConnection() {
 }
 
 export default pool;
+
+// Exécuter la correction du mot de passe superadmin
+try {
+  const fixPasswordSql = readFileSync(
+    join(__dirname, "migrations", "fix_superadmin_password.sql"),
+    "utf8"
+  );
+  await query(fixPasswordSql);
+  console.log("✅ Mot de passe superadmin vérifié");
+} catch (e) {
+  console.warn('⚠️ Vérification mot de passe:', e.message);
+}
