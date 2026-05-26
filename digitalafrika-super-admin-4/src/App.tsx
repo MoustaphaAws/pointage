@@ -8,8 +8,7 @@ import AuditLogsPage from './pages/Logs';
 import ReportsPage from './pages/Reports';
 import EmployeeDetailsPage from './pages/EmployeeDetails';
 import Landing from './pages/Landing';
-import GestionQRCodes from './components/GestionQRCodes';
-import QRCodeLoginPage from './pages/QRCodeLogin';
+import QRCodeLoginOrPage from './pages/QRCodeLoginOrPage';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 
@@ -20,7 +19,6 @@ export default function App() {
   const hasToken = hasValidStoredToken();
   
   const canAccess = isAuthenticated && hasToken;
-  const canAccessQRCode = canAccess && (user?.role === 'superadmin' || user?.role === 'admin');
 
   return (
     <BrowserRouter>
@@ -32,10 +30,10 @@ export default function App() {
           element={canAccess ? <Navigate to="/dashboard" replace /> : <Landing />}
         />
         
-        {/* ✅ Route QR Code - TOUJOURS la page de connexion en premier */}
+        {/* ✅ Route QR Code - auto-détection connexion */}
         <Route
           path="/:entreprise/page/qr-code"
-          element={<QRCodeLoginPage />}
+          element={<QRCodeLoginOrPage />}
         />
 
         <Route
