@@ -1,13 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { LogIn, LockKeyhole, AlertCircle } from 'lucide-react';
-import { useAuthStore } from '../store/useAuthStore';
 import { authService } from '../services/authService';
 
 export default function QRCodeLoginPage() {
   const { entreprise } = useParams();
-  const navigate = useNavigate();
-  const loginStore = useAuthStore((state) => state.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,11 +25,14 @@ export default function QRCodeLoginPage() {
         return;
       }
       
-      loginStore(user, user.token);
-      navigate(`/${entreprise}/page/qr-code`);
+      // ✅ Stocker directement sans passer par le store global
+      localStorage.setItem('auth_token', user.token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      
+      // ✅ Redirection directe vers la page QR Code
+      window.location.href = `/${entreprise}/page/qr-code`;
     } catch (err: any) {
       setError(err.message || 'Identifiants invalides');
-    } finally {
       setLoading(false);
     }
   };
