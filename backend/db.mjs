@@ -19,6 +19,16 @@ const pool = process.env.DATABASE_URL
 export const query = (text, params = []) => pool.query(text, params);
 
 export async function runMigrations() {
+  // Ajouter 'superadmin' dans l'enum role_enum (correction)
+  try {
+    await query(`ALTER TYPE role_enum ADD VALUE IF NOT EXISTS 'superadmin'`);
+  } catch (e) {
+    // Ignorer si existe déjà
+    if (!e.message?.includes('already exists')) {
+      console.warn('⚠️ Migration role_enum:', e.message);
+    }
+  }
+
   await query(`
     ALTER TABLE employes
     ADD COLUMN IF NOT EXISTS admin_permissions JSONB DEFAULT '{}'::jsonb
