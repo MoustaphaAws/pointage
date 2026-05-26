@@ -9,7 +9,9 @@ import {
   Sparkles,
   ArrowLeft,
   CalendarCheck,
-  Info
+  Info,
+  Copy,
+  Link
 } from 'lucide-react';
 
 export type QRCodeType = 'entrée' | 'sortie';
@@ -33,6 +35,7 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [qrCodeData, setQrCodeData] = useState<GeneratedQRCode | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -41,20 +44,15 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
     }, 3000);
   };
 
-  const getEntrepriseSlug = () => {
-    const userStr = localStorage.getItem('auth_user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        return user.companyName?.toLowerCase() || 
-               user.entreprise?.toLowerCase() || 
-               user.service?.toLowerCase() || 
-               'default';
-      } catch {
-        return 'default';
-      }
-    }
-    return 'default';
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}${window.location.pathname}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopied(true);
+      showToast('✅ Lien copié dans le presse-papier !');
+      setTimeout(() => setLinkCopied(false), 2000);
+    }).catch(() => {
+      showToast('Erreur lors de la copie du lien');
+    });
   };
 
   const handleGenerate = (e: React.FormEvent) => {
@@ -67,8 +65,8 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
       
       const secureToken = `${formattedType}_DF_${Math.random().toString(36).substring(2, 10).toUpperCase()}_${Math.floor(Date.now() / 1000)}`;
       
-      const entrepriseSlug = getEntrepriseSlug();
-      const customUrl = `/${entrepriseSlug}/page/qr-code?token=${secureToken}&type=${type}${minutes ? `&duration=${minutes}` : ''}`;
+      // ✅ QR Code contient juste le token
+      const customUrl = secureToken;
 
       setQrCodeData({
         type,
@@ -227,7 +225,6 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
     printWindow.document.close();
   };
 
-  // --- AFFICHAGE 1 : QR CODE GÉNÉRÉ - CENTRÉ ---
   if (qrCodeData) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
@@ -278,6 +275,29 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
               </p>
             </div>
 
+            {/* ✅ BOUTON COPIER LE LIEN */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`w-full py-3 px-4 rounded-2xl text-xs font-semibold transition duration-150 inline-flex items-center justify-center gap-2 cursor-pointer ${
+                linkCopied 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              {linkCopied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-500" />
+                  Lien copié !
+                </>
+              ) : (
+                <>
+                  <Link className="w-4 h-4 text-slate-500" />
+                  Copier le lien de la page
+                </>
+              )}
+            </button>
+
             <div className="w-full space-y-3 pt-3">
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -316,7 +336,6 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
     );
   }
 
-  // --- AFFICHAGE 2 : CONFIGURATION - CENTRÉ ---
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
       <div className="w-full max-w-lg mx-auto bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden animate-fade-in" id="simplified-qr-container">
@@ -328,19 +347,44 @@ export default function GestionQRCodes({ onQrActiveChange }: GestionQRCodesProps
           </div>
         )}
 
+        {/* ✅ BOUTON COPIER LE LIEN DANS LE HEADER */}
         <div className="p-6 border-b border-blue-100 bg-blue-50/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-700 text-white rounded-2xl shadow-sm">
-              <CalendarCheck className="w-5 h-5" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-700 text-white rounded-2xl shadow-sm">
+                <CalendarCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider font-sans">
+                  Émargement d'Équipe
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Sélectionnez l'action de pointage
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider font-sans">
-                Émargement d'Équipe
-              </h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Sélectionnez l'action de pointage de vos collaborateurs en un clic
-              </p>
-            </div>
+            {/* ✅ Bouton copier le lien */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`py-2 px-3 rounded-xl text-[10px] font-semibold transition duration-150 inline-flex items-center gap-1.5 cursor-pointer ${
+                linkCopied 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200'
+              }`}
+            >
+              {linkCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Copié !
+                </>
+              ) : (
+                <>
+                  <Link className="w-3.5 h-3.5" />
+                  Copier le lien
+                </>
+              )}
+            </button>
           </div>
         </div>
 

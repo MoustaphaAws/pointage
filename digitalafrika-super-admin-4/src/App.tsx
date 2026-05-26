@@ -20,7 +20,9 @@ export default function App() {
   
   const canAccess = isAuthenticated && hasToken;
   
-  // Récupérer le slug de l'entreprise depuis l'utilisateur connecté
+  // ✅ Seuls superadmin et admin (RH) peuvent accéder au QR Code
+  const canAccessQRCode = canAccess && (user?.role === 'superadmin' || user?.role === 'admin');
+  
   const entrepriseSlug = user?.companyName?.toLowerCase() || 'default';
 
   return (
@@ -33,14 +35,16 @@ export default function App() {
           element={canAccess ? <Navigate to="/dashboard" replace /> : <Landing />}
         />
         
-        {/* Route QR Code dynamique par entreprise */}
+        {/* ✅ Route QR Code - protégée par rôle */}
         <Route
           path="/:entreprise/page/qr-code"
           element={
-            canAccess ? (
+            canAccessQRCode ? (
               <Layout>
                 <GestionQRCodes onQrActiveChange={() => {}} />
               </Layout>
+            ) : canAccess ? (
+              <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/" replace />
             )
