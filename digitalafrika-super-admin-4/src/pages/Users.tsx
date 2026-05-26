@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Edit2, ShieldCheck, ShieldOff, Trash2, UserCog, U
 import toast from 'react-hot-toast';
 import { createUser, defaultAdminPermissions, fetchReferentials, fetchUsers, updateUser, desactiverEmploye, desactiverPlusieursEmployes, reactiverEmploye, supprimerEmploye } from '../services/superAdminApi';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
 
 type UserFormState = {
   firstName: string;
@@ -51,6 +52,10 @@ export default function UsersPage() {
   const [services, setServices] = useState<string[]>([]);
   const [postes, setPostes] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // ✅ Récupérer le companyName depuis le store
+  const storeUser = useAuthStore((state) => state.user);
+  const companySlug = storeUser?.companyName?.toLowerCase() || 'default';
 
   useEffect(() => {
     Promise.all([fetchUsers(), fetchReferentials()])
@@ -280,11 +285,6 @@ export default function UsersPage() {
     return { label: 'Partiel', className: 'bg-amber-50 text-amber-700 border-amber-200' };
   };
 
-  // Récupérer le companyName depuis le store
-  const { useAuthStore } = require('../store/useAuthStore');
-  const userStore = useAuthStore.getState();
-  const companySlug = userStore.user?.companyName?.toLowerCase() || 'default';
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center border-b border-slate-200 pb-4">
@@ -308,7 +308,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* BOUTONS D'ACTIONS EN MASSE */}
       {selectedIds.size > 0 && (
         <div className="flex gap-3 items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
           <span className="text-sm font-semibold text-blue-800">{selectedIds.size} sélectionné(s)</span>
