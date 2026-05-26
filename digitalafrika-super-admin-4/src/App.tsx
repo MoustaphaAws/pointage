@@ -32,7 +32,7 @@ export default function App() {
         
         {/* ✅ Route QR Code - auto-détection connexion */}
         <Route
-          path="/:entreprise/page/qr-code"
+          path="/:entreprise/qr-code"
           element={<QRCodeLoginOrPage />}
         />
 

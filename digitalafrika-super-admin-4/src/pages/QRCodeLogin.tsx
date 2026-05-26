@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { LogIn, LockKeyhole, AlertCircle } from 'lucide-react';
+import { LogIn, LockKeyhole, AlertCircle, QrCode, Building2, ArrowRight } from 'lucide-react';
 import { authService } from '../services/authService';
 
 export default function QRCodeLoginPage() {
@@ -18,19 +18,15 @@ export default function QRCodeLoginPage() {
     try {
       const user = await authService.login(email, password);
       
-      // ✅ Vérifier que c'est un superadmin ou admin (RH)
       if (user.role !== 'superadmin' && user.role !== 'admin') {
-        setError('Accès réservé au Super Admin et RH. Les employés ne peuvent pas accéder à cette page.');
+        setError('Accès réservé au Super Admin et RH.');
         setLoading(false);
         return;
       }
       
-      // ✅ Stocker directement sans passer par le store global
       localStorage.setItem('auth_token', user.token);
       localStorage.setItem('auth_user', JSON.stringify(user));
-      
-      // ✅ Redirection directe vers la page QR Code
-      window.location.href = `/${entreprise}/page/qr-code`;
+      window.location.reload();
     } catch (err: any) {
       setError(err.message || 'Identifiants invalides');
       setLoading(false);
@@ -38,50 +34,53 @@ export default function QRCodeLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <LockKeyhole className="w-6 h-6 text-blue-700" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl" />
+      </div>
+      <div className="relative w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-medium mb-4">
+            <Building2 className="w-3.5 h-3.5 text-blue-400" />
+            {entreprise || 'Entreprise'}
           </div>
-          <h2 className="text-sm font-extrabold text-slate-800 uppercase">Pointage {entreprise}</h2>
-          <p className="text-[11px] text-slate-500 mt-1">Connexion réservée au Super Admin et RH</p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full text-xs border border-slate-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full text-xs border border-slate-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none"
-            required
-          />
-          
-          {error && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-100 p-2.5 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-red-600 font-medium">{error}</p>
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-lg shadow-blue-500/25 mb-5">
+              <QrCode className="w-8 h-8 text-white" />
             </div>
-          )}
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition"
-          >
-            <LogIn className="w-4 h-4" />
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-        </form>
+            <h1 className="text-xl font-bold text-slate-900">Pointage par QR Code</h1>
+            <p className="text-sm text-slate-500 mt-1.5">Connectez-vous pour générer les codes d'émargement</p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Email</label>
+              <input type="email" placeholder="rh@entreprise.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3.5 focus:border-blue-500 focus:outline-none bg-slate-50/80" required />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Mot de passe</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full text-sm border border-slate-200 rounded-2xl px-4 py-3.5 focus:border-blue-500 focus:outline-none bg-slate-50/80" required />
+            </div>
+            {error && (
+              <div className="flex items-start gap-3 bg-red-50 border border-red-100 p-3.5 rounded-2xl">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+            <button type="submit" disabled={loading} className="w-full py-3.5 bg-gradient-to-r from-blue-700 to-blue-800 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg disabled:opacity-60">
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><LogIn className="w-5 h-5" /> Se connecter</>}
+            </button>
+          </form>
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <div className="flex items-center gap-3 text-xs text-slate-500">
+              <LockKeyhole className="w-4 h-4 text-blue-600" />
+              <span>Connexion sécurisée réservée aux administrateurs</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-center text-[10px] text-white/40 mt-6 font-medium">One Time — Système d'émargement</p>
       </div>
     </div>
   );

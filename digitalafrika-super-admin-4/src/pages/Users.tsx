@@ -296,7 +296,7 @@ export default function UsersPage() {
           {/* ✅ BOUTON QR CODE */}
           <Button 
             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800"
-            onClick={() => navigate(`/${companySlug}/page/qr-code`)}
+            onClick={() => navigate(`/${companySlug}/qr-code`)}
           >
             <QrCode size={16} />
             Pointage
