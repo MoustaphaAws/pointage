@@ -9,6 +9,7 @@ import ReportsPage from './pages/Reports';
 import EmployeeDetailsPage from './pages/EmployeeDetails';
 import Landing from './pages/Landing';
 import GestionQRCodes from './components/GestionQRCodes';
+import QRCodeLoginPage from './pages/QRCodeLogin';
 import { hasValidStoredToken, useAuthStore } from './store/useAuthStore';
 
 
@@ -22,8 +23,6 @@ export default function App() {
   
   // ✅ Seuls superadmin et admin (RH) peuvent accéder au QR Code
   const canAccessQRCode = canAccess && (user?.role === 'superadmin' || user?.role === 'admin');
-  
-  const entrepriseSlug = user?.companyName?.toLowerCase() || 'default';
 
   return (
     <BrowserRouter>
@@ -35,7 +34,7 @@ export default function App() {
           element={canAccess ? <Navigate to="/dashboard" replace /> : <Landing />}
         />
         
-        {/* ✅ Route QR Code - protégée par rôle */}
+        {/* ✅ Route QR Code - avec page de connexion dédiée */}
         <Route
           path="/:entreprise/page/qr-code"
           element={
@@ -44,9 +43,11 @@ export default function App() {
                 <GestionQRCodes onQrActiveChange={() => {}} />
               </Layout>
             ) : canAccess ? (
+              // Connecté mais pas le bon rôle → dashboard
               <Navigate to="/dashboard" replace />
             ) : (
-              <Navigate to="/" replace />
+              // Pas connecté → page de connexion dédiée
+              <QRCodeLoginPage />
             )
           }
         />
