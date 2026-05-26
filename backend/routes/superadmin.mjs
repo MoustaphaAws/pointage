@@ -171,7 +171,7 @@ router.get("/admins", async (req, res, next) => {
               e.uid_badge AS badge_uid, e.admin_permissions, e.created_at
        FROM employes e
        JOIN services s ON s.id = e.service_id
-       WHERE e.role IN ('employee', 'admin')${escope}
+       WHERE e.role = 'employee'${escope}
        ORDER BY e.created_at DESC`,
       params
     );
